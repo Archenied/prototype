@@ -19,6 +19,8 @@ export const POLICY = {
   subwayStatus: { interval: 2 * 60e3, minGap: 60e3 },
   route: { interval: 5 * 60e3, minGap: 2 * 60e3 },
   signal: { interval: 10e3, minGap: 5e3 },
+  // 내 주변 신호등 목록 (위치가 크게 바뀌지 않으니 5분마다)
+  signalNearby: { interval: 5 * 60e3, minGap: 60e3 },
 };
 const MAX_CONCURRENT = 4;
 

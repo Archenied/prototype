@@ -6,7 +6,7 @@ import { icon, KIND_ICON, WX_ICON } from '../icons.js';
 import { state, homeRegion, regionLabel, targetLabel, saveQuiet, onChange, setHomeRegion } from '../store.js';
 import { register, setActive, view, request, refreshActive, subscribe, POLICY, isRecovering, onRecovering } from '../data.js';
 import { net, errorText, getJSON } from '../net.js';
-import { silentLocation, coarse, openWindowsSettings } from '../location.js';
+import { silentLocation, coarse, openWindowsSettings, requestLocation } from '../location.js';
 import { go, config } from '../app.js';
 import { track } from '../metrics.js';
 import { t } from '../i18n.js';
@@ -74,8 +74,71 @@ function registerAll() {
     if (t.type === 'signal') register({ key, type: 'signal', metricType: 'signal', targetId: t.id, url: () => `/api/transit/signal?id=${encodeURIComponent(t.ref.signalId)}` });
     keys.push(key);
   }
+  // 내 주변 신호등: 저장하지 않아도 내 위치(없으면 홈 지역) 가까운 곳을 자동으로 보여 준다
+  register({ key: NEAR_KEY, type: 'signalNearby', metricType: 'signal', fetch: fetchNearSignals });
+  keys.push(NEAR_KEY);
+  for (const t of nearSignalTargets()) {
+    const key = `t:${t.id}`;
+    register({ key, type: 'signal', metricType: 'signal', url: () => `/api/transit/signal?id=${encodeURIComponent(t.ref.signalId)}` });
+    keys.push(key);
+  }
   setActive(keys);
   return keys;
+}
+
+const NEAR_KEY = 'near:signal';
+const NEAR_MAX = 4;
+async function fetchNearSignals() {
+  let pos, basis = 'gps';
+  try {
+    pos = await silentLocation();
+  } catch (e) {
+    // 위치를 아직 허용하지 않았으면 홈 날씨 지역 기준
+    const r = homeRegion();
+    if (!r || r.kind === 'current' || !Number.isFinite(r.lat)) throw e;
+    pos = { lat: r.lat, lon: r.lon };
+    basis = 'region';
+  }
+  const res = await getJSON(`/api/transit/nearby?type=signal&lat=${coarse(pos.lat, 3)}&lon=${coarse(pos.lon, 3)}`);
+  return { ...res, data: { list: (res.data || []).slice(0, 8), basis } };
+}
+function nearSignalTargets() {
+  const d = view(NEAR_KEY).data;
+  if (!d?.list) return [];
+  const saved = new Set(state.targets.filter((t) => t.type === 'signal').map((t) => t.ref.signalId));
+  return d.list
+    .filter((r) => !saved.has(r.ref.signalId))
+    .slice(0, NEAR_MAX)
+    .map((r) => ({
+      id: 'near-' + r.ref.signalId, type: 'signal', name: r.name, label: '', near: true, ref: r.ref,
+      sub: `내 주변${r.distanceM != null ? ` · ${r.distanceM < 1000 ? r.distanceM + 'm' : (r.distanceM / 1000).toFixed(1) + 'km'}` : ''}${d.basis === 'region' ? ' (홈 지역 기준)' : ''}`,
+    }));
+}
+
+// 내 주변 신호등 상태 안내 (불러오는 중 · 위치 필요 · 활용신청 필요 · 근처에 없음)
+function nearSignalNotice() {
+  const v = view(NEAR_KEY);
+  const err = v.error;
+  if (err?.detail === 'key') {
+    return h('div.notice.warn', { role: 'status' }, icon('key'), h('div.grow',
+      h('strong', '신호등 정보를 쓰려면 활용신청이 필요해요'),
+      h('div.small', '공공데이터포털(data.go.kr)에서 "한국지역정보개발원_교통안전 신호등 실시간 정보"를 검색해 활용신청을 눌러 주세요. 지금 키로 신청하면 되고, 승인되면 여기 자동으로 보여요.'),
+      h('div.small.faint', '참고: 이 서비스의 실시간 신호는 아직 일부 지역만 제공돼서, 서울·경기 교차로는 "신호 정보 제공 안 됨"으로 보일 수 있어요.'),
+      h('div.actions', h('a.btn.btn-sm', { href: 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?keyword=%EC%8B%A0%ED%98%B8%EB%93%B1%20%EC%8B%A4%EC%8B%9C%EA%B0%84', target: '_blank', rel: 'noopener' }, icon('external', 'icon-sm'), 'data.go.kr에서 찾기'))));
+  }
+  if (err?.kind === 'location') {
+    return h('div.notice', { role: 'status' }, icon('location'), h('div.grow',
+      h('strong', '내 주변 신호등을 보려면 위치가 필요해요'),
+      h('div.small', '위치를 허용하거나, 설정에서 홈 날씨 지역을 저장하면 그 근처 신호등을 보여 줘요.'),
+      h('div.actions', btn('내 위치 사용', { small: true, kind: 'primary', iconName: 'crosshair', fkey: 'near-loc', onClick: async () => {
+        const r = await requestLocation('nearby');
+        if (r.status === 'ok') request(NEAR_KEY, { force: true });
+      } }))));
+  }
+  if (err && !v.data) return errorNotice(NEAR_KEY, v);
+  if (!v.data) return h('div.notice', h('span.spinner'), '내 주변 신호등을 찾는 중…');
+  if (!v.data.list.length) return h('div.notice', icon('info'), '근처 1km 안에서 신호등을 찾지 못했어요. 신호등을 직접 검색해 저장할 수도 있어요.');
+  return null;
 }
 
 /* ───────── 공통 상태 표시 ───────── */
@@ -253,7 +316,7 @@ function signalBody(data, at) {
 function targetCard(t, { compact = false } = {}) {
   const key = `t:${t.id}`;
   const v = view(key);
-  const unavailable = isUnavailable(t, v);
+  const unavailable = !t.near && isUnavailable(t, v);
   const showData = !unavailable && usable(t.type, v);
   let body;
   if (unavailable) {
@@ -496,7 +559,9 @@ function tabsFor() {
   const counts = { bus: 0, subway: 0, route: 0, signal: 0 };
   for (const t of state.targets) counts[t.type]++;
   const tabs = [{ id: 'weather', label: '날씨', icon: 'sun' }, { id: 'all', label: '교통 전체', icon: 'route', count: state.targets.length }];
-  for (const type of ['bus', 'subway', 'route', 'signal']) if (counts[type]) tabs.push({ id: type, label: TYPE_NAME[type], icon: KIND_ICON[type], count: counts[type] });
+  for (const type of ['bus', 'subway', 'route']) if (counts[type]) tabs.push({ id: type, label: TYPE_NAME[type], icon: KIND_ICON[type], count: counts[type] });
+  // 신호등은 저장하지 않아도 '내 주변'이 자동으로 나와서 항상 보인다
+  tabs.push({ id: 'signal', label: TYPE_NAME.signal, icon: KIND_ICON.signal, count: counts.signal + nearSignalTargets().length });
   return tabs;
 }
 
@@ -546,7 +611,22 @@ function weatherDetail() {
 }
 
 function transitDetail(tab, layout, pageIndex) {
-  const list = tab === 'all' ? state.targets : state.targets.filter((t) => t.type === tab);
+  let list = tab === 'all' ? state.targets : state.targets.filter((t) => t.type === tab);
+  if (tab === 'signal') {
+    list = [...list, ...nearSignalTargets()];
+    const notice = nearSignalNotice();
+    if (!list.length || notice) {
+      const grid = list.length ? transitDetail('__sig', layout, pageIndex, list) : null;
+      return {
+        el: h('div.stack', { style: { height: '100%', minHeight: 0 } },
+          h('div.card', h('div.card-title', icon('signal', 'icon-sm'), h('span.grow', '내 주변 신호등')), h('div', { style: { marginTop: '10px' } }, notice || null),
+            h('div.actions', { style: { marginTop: '10px' } }, btn('신호등 검색해서 저장', { small: true, iconName: 'plus', fkey: 'sig-add', onClick: () => go('/settings/transit/add?type=signal') }))),
+          grid ? grid.el : null),
+        pages: grid ? grid.pages : 1, page: grid ? grid.page : 0,
+      };
+    }
+  }
+  if (tab === '__sig') list = arguments[3];
   if (!list.length) {
     const type = tab === 'all' ? '' : tab;
     return {
@@ -780,7 +860,15 @@ export function homeView() {
       renderAll();
       // 처음 열 때: 캐시는 이미 보이고, 영역마다 독립적으로 조회 시작
       for (const k of keys) request(k);
-      unsubs.push(subscribe(schedule));
+      unsubs.push(subscribe((k) => {
+        if (k === NEAR_KEY && !view(NEAR_KEY).loading) {
+          const next = registerAll();
+          keys.length = 0;
+          keys.push(...next);
+          for (const nk of next) if (nk.startsWith('t:near-') && !view(nk).updatedAt) request(nk);
+        }
+        schedule();
+      }));
       unsubs.push(net.onChange(schedule));
       unsubs.push(onRecovering(schedule));
       unsubs.push(onChange((what) => { if (what === 'unavailable') schedule(); }));
