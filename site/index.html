@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <title>프로토타입 다운로드</title>
   <meta name="description" content="시각·날씨·교통을 한 화면에서 — 프로토타입 앱 다운로드">
@@ -46,6 +46,29 @@
     code { background: var(--line); padding: 1px 6px; border-radius: 6px; font-size: 14px; color: var(--text); }
     .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
     footer { padding: 40px 16px 48px; color: var(--muted); font-size: 14px; }
+    /* 미리보기: 진짜 앱이 작은 휴대폰 틀 안에서 돌아간다. 누르면 전체 화면 */
+    section.preview { padding: 36px 16px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: center; }
+    section.preview h3 { font-size: 22px; margin: 0 0 8px; }
+    section.preview p { color: var(--muted); margin: 0 0 14px; }
+    .phone { position: relative; width: 300px; height: 600px; border-radius: 38px; padding: 12px; background: #0b0f1a; box-shadow: var(--shadow), 0 0 0 1px var(--line); flex: none; }
+    .phone .screen { position: relative; width: 276px; height: 576px; border-radius: 28px; overflow: hidden; background: var(--bg); }
+    .phone iframe { position: absolute; left: 0; top: 0; width: 375px; height: 783px; border: 0; transform: scale(.736); transform-origin: 0 0; pointer-events: none; }
+    .phone .tap { position: absolute; inset: 0; border: 0; border-radius: 38px; background: transparent; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 26px; }
+    .phone .tap span { background: rgba(17, 24, 39, .82); color: #fff; font-weight: 700; font-size: 14px; padding: 8px 14px; border-radius: 999px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+    .phone .tap:hover span, .phone .tap:focus-visible span { background: var(--accent); }
+    .live { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--ok); }
+    .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 50% { opacity: .3; } }
+    .full { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; flex-direction: column;
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) 0 env(safe-area-inset-left, 0); }
+    .full[hidden] { display: none; }
+    .full .bar { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--line); background: var(--card); }
+    .full .bar b { flex: 1; font-size: 15px; }
+    .full .bar small { color: var(--muted); font-size: 12px; }
+    .full .close { min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
+    .full iframe { flex: 1; width: 100%; border: 0; background: var(--bg); }
+    body.locked { overflow: hidden; }
+    @media (max-width: 720px) { section.preview { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
     :focus-visible { outline: 3px solid var(--accent-2); outline-offset: 2px; border-radius: 10px; }
   </style>
 </head>
@@ -91,6 +114,21 @@
         <p style="font-size:13px">iOS 16.4 이상 · 꼭 <b>Safari</b>로 열어 주세요 · 서울 버스는 아직 안 돼요</p>
       </article>
     </div>
+
+    <section class="preview" aria-labelledby="pv-title">
+      <div>
+        <span class="live">진짜로 돌아가는 중</span>
+        <h3 id="pv-title">설치하기 전에 써 보세요</h3>
+        <p>오른쪽 휴대폰 화면은 사진이 아니라 실제 앱이에요. 시계가 움직이고 날씨·버스·지하철이 새로 고쳐져요.
+          <b>누르면 전체 화면</b>으로 열려서 모든 화면을 직접 눌러 볼 수 있어요. iPhone·Android·PC 모두 돼요.</p>
+        <p style="font-size:14px">아직 저장한 게 없으면 예시(명동·광화문 정류장·시청역)와 데모 데이터로 보여 주고, 아무것도 저장하지 않아요.</p>
+        <a class="btn" href="#preview" data-open-preview>▶ 전체 화면으로 써 보기</a>
+      </div>
+      <div class="phone">
+        <div class="screen"><iframe src="app/?preview#/home" title="프로토타입 미리보기" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div>
+        <button class="tap" type="button" data-open-preview aria-label="미리보기를 전체 화면으로 열기"><span>눌러서 전체 화면</span></button>
+      </div>
+    </section>
 
     <section class="more grid2">
       <div>
@@ -139,7 +177,55 @@
     <p><a href="https://github.com/Archenied/prototype">GitHub에서 코드 보기</a></p>
   </footer>
 
+  <div class="full" id="full" hidden role="dialog" aria-modal="true" aria-label="프로토타입 전체 화면 미리보기">
+    <div class="bar">
+      <b>프로토타입 <small id="full-note"></small></b>
+      <button class="close" type="button" id="full-close">✕ 닫기</button>
+    </div>
+  </div>
+
   <script>
+    // 미리보기 전체 화면: iPhone Safari는 웹 페이지의 '진짜 전체 화면'을 막아 두어서,
+    // 화면 전체를 덮는 층으로 띄운다 (모든 기기에서 같게 동작). 뒤로 가기·Esc·닫기로 닫힌다.
+    (function () {
+      const full = document.getElementById('full');
+      const note = document.getElementById('full-note');
+      let frame = null;
+      let opener = null;
+      function hasSaved() {
+        try { const v = JSON.parse(localStorage.getItem('proto.settings.v1') || 'null'); return !!(v && (v.onboardingDone || (v.regions || []).length || (v.targets || []).length)); } catch (e) { return false; }
+      }
+      function open(push) {
+        if (!full.hidden) return;
+        opener = document.activeElement;
+        note.textContent = hasSaved() ? '· 내가 저장한 설정' : '· 체험용 예시 (저장되지 않아요)';
+        frame = document.createElement('iframe');
+        frame.src = 'app/?preview#/home';
+        frame.title = '프로토타입';
+        frame.allow = 'geolocation';
+        full.append(frame);
+        full.hidden = false;
+        document.body.classList.add('locked');
+        if (push) history.pushState({ preview: true }, '', '#preview');
+        setTimeout(function () { try { frame.focus(); } catch (e) {} }, 300);
+      }
+      function close(fromHistory) {
+        if (full.hidden) return;
+        full.hidden = true;
+        document.body.classList.remove('locked');
+        if (frame) { frame.remove(); frame = null; }
+        if (!fromHistory && location.hash === '#preview') history.back();
+        if (opener && opener.focus) opener.focus();
+      }
+      document.querySelectorAll('[data-open-preview]').forEach(function (el) {
+        el.addEventListener('click', function (e) { e.preventDefault(); open(true); });
+      });
+      document.getElementById('full-close').addEventListener('click', function () { close(false); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(false); });
+      addEventListener('popstate', function () { if (location.hash === '#preview') open(false); else close(true); });
+      if (location.hash === '#preview') open(false);
+    })();
+
     fetch('version.json', { cache: 'no-store' })
       .then((r) => r.json())
       .then((j) => { document.getElementById('ver').textContent = '최신 버전 ' + j.version; })

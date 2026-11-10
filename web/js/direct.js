@@ -9,8 +9,11 @@ export const DIRECT = !['127.0.0.1', 'localhost', '[::1]'].includes(location.hos
 export const NATIVE = typeof window !== 'undefined' && window.PrototypeNative ? window.PrototypeNative : null;
 const nativeJson = (fn, ...a) => { try { return JSON.parse(NATIVE[fn](...a)); } catch { return null; } };
 
+import { usingSample } from './store.js';
+
 const KEYS_STORE = 'proto.keys.v1';
 export function getKeys() {
+  if (usingSample()) return {}; // 미리보기 예시는 항상 데모 데이터
   try { return JSON.parse(localStorage.getItem(KEYS_STORE) || '{}') || {}; } catch { return {}; }
 }
 export function setKeys(k) {
