@@ -1,0 +1,43 @@
+# 다운로드 페이지와 모바일 웹 버전을 GitHub Pages에 올린다.
+#   https://archenied.github.io/prototype/      다운로드 페이지 (site/)
+#   https://archenied.github.io/prototype/app/  모바일 웹 (web/ + 서버의 데이터 공급자 코드)
+name: Deploy download page
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build site
+        run: |
+          mkdir -p _site/app/js/providers
+          cp -r site/* _site/
+          cp web/icon.svg _site/icon.svg
+          cp version.json _site/version.json
+          cp -r web/* _site/app/
+          cp version.json _site/app/version.json
+          cp server/errors.mjs server/places.mjs server/demo.mjs server/live.mjs server/datagokr.mjs _site/app/js/providers/
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

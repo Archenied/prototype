@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>프로토타입 다운로드</title>
+  <meta name="description" content="시각·날씨·교통을 한 화면에서 — 프로토타입 앱 다운로드">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #f4f6fb; --card: #ffffff; --text: #121722; --muted: #5a6474; --line: #e1e6ef;
+      --accent: #1d4ed8; --accent-2: #06b6d4; --soon: #8a93a3; --ok: #15803d;
+      --shadow: 0 10px 30px rgba(17, 24, 39, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0b0f1a; --card: #141a28; --text: #eef2f8; --muted: #a3adbd; --line: #263043; --accent: #6ea2ff; --accent-2: #38d1e6; --soon: #7b8495; --ok: #4fd18a; --shadow: 0 10px 30px rgba(0, 0, 0, .4); }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 "Segoe UI Variable Text", "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; }
+    a { color: var(--accent); }
+    .hero { background: linear-gradient(135deg, #1e1b4b 0%, #1d4ed8 55%, #06b6d4 100%); color: #fff; padding: 56px 16px 96px; }
+    .wrap { max-width: 1040px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 18px; }
+    .brand img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+    h1 { margin: 0; font-size: clamp(30px, 5vw, 46px); line-height: 1.15; letter-spacing: -0.02em; }
+    .tag { margin: 6px 0 0; font-size: 18px; opacity: .9; }
+    .ver { display: inline-block; margin-top: 16px; padding: 4px 12px; border-radius: 999px; background: rgba(255,255,255,.18); font-weight: 600; font-size: 14px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: -60px; padding: 0 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
+    .card h2 { margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+    .card p { margin: 0; color: var(--muted); font-size: 15px; }
+    .card .grow { flex: 1; }
+    .ico { width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; flex: none; }
+    .ico svg { width: 22px; height: 22px; }
+    .soon .ico { background: var(--soon); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 18px; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; border: 0; }
+    .btn:hover { filter: brightness(1.08); }
+    .btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+    .btn[aria-disabled="true"] { background: var(--line); color: var(--muted); pointer-events: none; }
+    .badge { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--line); color: var(--muted); }
+    section.more { padding: 36px 16px 8px; }
+    section.more h3 { font-size: 20px; margin: 0 0 10px; }
+    ol, ul { margin: 0; padding-left: 22px; color: var(--muted); }
+    li { margin: 4px 0; }
+    code { background: var(--line); padding: 1px 6px; border-radius: 6px; font-size: 14px; color: var(--text); }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    footer { padding: 40px 16px 48px; color: var(--muted); font-size: 14px; }
+    :focus-visible { outline: 3px solid var(--accent-2); outline-offset: 2px; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap brand">
+      <img src="icon.svg" alt="">
+      <div>
+        <h1>프로토타입</h1>
+        <p class="tag">시각 · 날씨 · 교통을 한 화면에서. 출발 전에 여러 앱을 오갈 필요 없어요.</p>
+        <span class="ver" id="ver">최신 버전 확인 중…</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="cards">
+      <article class="card">
+        <h2><span class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10 4.5v7H3zM11 4.4 21 3v8.5H11zM3 12.5h7v7l-7-1zM11 12.5h10V21l-10-1.4z"/></svg></span>Windows</h2>
+        <p class="grow">PC 앱. 알림, 서울·경기 버스, 자동 업데이트까지 모든 기능을 쓸 수 있어요.</p>
+        <a class="btn" href="https://github.com/Archenied/prototype/archive/refs/heads/main.zip">⬇ Windows용 다운로드 (ZIP)</a>
+        <p style="font-size:13px">Windows 10·11 · <a href="https://nodejs.org/">Node.js</a>와 Microsoft Edge 필요</p>
+      </article>
+
+      <article class="card">
+        <h2><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M11 18.5h2"/></svg></span>모바일 웹</h2>
+        <p class="grow">설치 없이 휴대폰 브라우저에서 바로 열어요. 홈 화면에 추가하면 앱처럼 쓸 수 있어요.</p>
+        <a class="btn" href="app/">휴대폰에서 열기</a>
+        <p style="font-size:13px">서울 버스·경로 시간·알림은 Windows 버전에서만 돼요</p>
+      </article>
+
+      <article class="card soon">
+        <h2><span class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 9h10v8a1 1 0 0 1-1 1h-1v3h-2v-3h-2v3H9v-3H8a1 1 0 0 1-1-1zM4 9h2v6H4zm14 0h2v6h-2zM8.3 3.6l1 1.7A5 5 0 0 1 12 4.5a5 5 0 0 1 2.7.8l1-1.7.6.4-1 1.7A5 5 0 0 1 17 8H7a5 5 0 0 1 1.7-2.3l-1-1.7z"/></svg></span>Android <span class="badge">준비 중</span></h2>
+        <p class="grow">Android 앱은 준비하고 있어요. 그동안은 모바일 웹을 써 주세요.</p>
+        <span class="btn" aria-disabled="true">곧 나와요</span>
+      </article>
+
+      <article class="card soon">
+        <h2><span class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5a4.3 4.3 0 0 0-3.4-1.8c-1.4-.2-2.8.8-3.5.8s-1.8-.8-3-.8A4.4 4.4 0 0 0 4.8 9.6c-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.7 2.3 2.9 2.3s1.6-.7 3-.7 1.8.7 3 .7 2-1.1 2.8-2.2a9.4 9.4 0 0 0 1.2-2.6 4 4 0 0 1-2.4-3.5zM14 5.9A4 4 0 0 0 15 3a4.1 4.1 0 0 0-2.7 1.4 3.8 3.8 0 0 0-1 2.8A3.4 3.4 0 0 0 14 5.9z"/></svg></span>iOS <span class="badge">준비 중</span></h2>
+        <p class="grow">iPhone 앱은 준비하고 있어요. 그동안은 Safari에서 모바일 웹을 열고 "홈 화면에 추가"를 눌러 주세요.</p>
+        <span class="btn" aria-disabled="true">곧 나와요</span>
+      </article>
+    </div>
+
+    <section class="more grid2">
+      <div>
+        <h3>Windows 설치 방법</h3>
+        <ol>
+          <li>위의 <b>Windows용 다운로드</b>를 눌러 ZIP을 받아요.</li>
+          <li>ZIP을 마우스 오른쪽 → <b>압축 풀기</b>.</li>
+          <li><a href="https://nodejs.org/">Node.js</a>(LTS)가 없으면 설치해요.</li>
+          <li><code>Prototype.exe</code>를 더블클릭하면 앱이 열려요.</li>
+          <li>실제 정보를 보려면 <code>API_KEYS.bat</code>을 열어 공공데이터포털 키를 넣어요. (키가 없으면 데모 데이터)</li>
+        </ol>
+        <p style="color:var(--muted);margin-top:10px">새 버전이 나오면 앱 왼쪽 아래에 <b>업데이트</b> 버튼이 떠요. 누르면 GitHub에서 바로 받아서 다시 열려요.</p>
+      </div>
+      <div>
+        <h3>휴대폰에서 쓰기</h3>
+        <ol>
+          <li><b>휴대폰에서 열기</b>를 눌러요. (이 페이지 주소 뒤에 <code>/app/</code>)</li>
+          <li>설정 → <b>API 키</b>에 공공데이터포털 키를 넣어요. 키는 그 휴대폰에만 저장돼요.</li>
+          <li>브라우저 메뉴에서 <b>홈 화면에 추가</b>를 누르면 앱처럼 열려요.</li>
+        </ol>
+        <h3 style="margin-top:20px">필요한 키</h3>
+        <ul>
+          <li><b>공공데이터포털 (data.go.kr)</b> — 필수. 날씨·버스·지하철·신호등</li>
+          <li><b>카카오 (developers.kakao.com)</b> — 선택. 전국 주소·장소 검색</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p>데이터 출처: 기상청 · 서울특별시 · 경기도 · 국토교통부 · 행정안전부 한국지역정보개발원 (공공데이터포털), 카카오. 표시되는 정보는 실제와 다를 수 있어요.</p>
+    <p><a href="https://github.com/Archenied/prototype">GitHub에서 코드 보기</a></p>
+  </footer>
+
+  <script>
+    fetch('version.json', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => { document.getElementById('ver').textContent = '최신 버전 ' + j.version; })
+      .catch(() => { document.getElementById('ver').textContent = '최신 버전'; });
+  </script>
+</body>
+</html>

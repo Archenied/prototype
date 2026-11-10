@@ -1,0 +1,17 @@
+# 비밀: API 키 (절대 올리지 않음). 새로 받은 사람은 API_KEYS.example.bat이 자동으로 복사돼요.
+API_KEYS.bat
+
+# 이 PC에서 생기는 기록 (피드백·지표·로그·호출 수)
+data/
+
+# 기획 문서 (이 PC에만 보관)
+docs/
+handoff/
+HANDOFF.md
+AGENTS.md
+handoff-status.json
+design-review/
+
+# 업데이트 중 남는 옛 실행 파일
+*.old.exe
+_update_test.txt
