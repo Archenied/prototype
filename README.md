@@ -89,7 +89,7 @@ data.go.kr에서 활용신청할 서비스 (검색창에 이름을 넣고 → �
 ## GitHub · 다운로드 페이지 (2026-11-10)
 
 - 코드: https://github.com/Archenied/prototype (공개)
-- 다운로드 페이지: https://archenied.github.io/prototype/ — Windows `Prototype.exe`, Android 앱(APK), 모바일 웹(`/app/`), iOS(준비 중)
+- 다운로드 페이지: https://archenied.github.io/prototype/ — Windows `Prototype.exe`, Android 앱(APK), 모바일 웹(`/app/`), iPhone(홈 화면 앱)
 - **자동 업데이트는 GitHub를 봐요**: 앱이 1분마다 GitHub의 `version.json`을 확인하고, 더 새 버전이면 왼쪽 아래에 업데이트가 떠요. 누르면 바뀐 파일만 받아서(지문 확인) 서버를 다시 켜요. `API_KEYS.bat`·`data\`는 건드리지 않아요.
 - **새 버전 내기**: 고친 파일을 다 올린 뒤 마지막에 `version.json`의 버전을 올려서 push하면, 그때 모든 사용자에게 업데이트가 떠요.
 - GitHub에 올리지 않는 것: `API_KEYS.bat`(키), `data\`, 기획 문서(`docs\`, `HANDOFF.md`, `AGENTS.md` 등). 새로 받은 사람은 `API_KEYS.example.bat`이 자동으로 `API_KEYS.bat`으로 복사돼요.
@@ -102,3 +102,12 @@ data.go.kr에서 활용신청할 서비스 (검색창에 이름을 넣고 → �
   - 빌드: `.github/workflows/android.yml`이 version.json이 바뀔 때 APK를 만들고, 가상 휴대폰(에뮬레이터)에 설치해 실행해 본 뒤 Release(`v버전`)에 `Prototype.apk`·`Prototype.exe`를 올려요.
   - 서명 키: 저장소 Secrets(`PROTO_KEYSTORE_B64`, `PROTO_KEYSTORE_PASSWORD`, `PROTO_KEY_ALIAS`, `PROTO_KEY_PASSWORD`). 백업은 이 PC의 `Downloads\Claude product\prototype-signing\`에만 있어요 (GitHub에 올리지 않음). **잃어버리면 새 버전을 옛 앱 위에 설치할 수 없어요.**
 - **시계 보정**: 화면 시계는 기기 시계로 매끄럽게 움직이고, 인터넷 표준 시각(NTP: time.google.com 등)과 0.3초 넘게 다르면 그 차이만큼 고쳐서 보여 줘요. 10분마다·인터넷이 다시 연결될 때·기기 시계가 갑자기 바뀔 때 다시 재요. 인터넷이 끊겨도 마지막 보정값을 계속 써요. 설정 → **시간 맞추기**에 지금 상태가 나와요. (PC: 서버가 NTP, Android: 앱이 NTP, 휴대폰 브라우저: 웹 서버 시각, 1초 단위)
+
+## Windows 앱 창 · iPhone 홈 화면 앱 (1.4.0)
+
+- **Windows**: Prototype.exe가 이제 Edge 창이 아니라 **자기 창**을 열어요 (안의 화면은 Windows에 들어 있는 WebView2 엔진). 그래서 작업 표시줄에 고정해도 Edge가 아니라 프로토타입이 고정돼요. 이미 열려 있으면 그 창을 앞으로 가져와요. 창 크기·위치를 기억하고, 출발 알림은 Windows 알림으로 떠요.
+  - WebView2 SDK 파일(`launcher\webview2\`, Microsoft.Web.WebView2 1.0.2903.40)은 exe 안에 들어 있고, 실행할 때 `%LOCALAPPDATA%\Prototype-TWT\bin`에 꺼내요. 화면 저장소: `%LOCALAPPDATA%\Prototype-TWT\WebView2` (처음 한 번 예전 Edge 프로필의 설정을 옮겨 와요).
+  - WebView2를 쓸 수 없는 PC면 예전처럼 Edge 앱 창으로 열어요. (`PROTOTYPE_USE_EDGE=1`로 강제 가능)
+  - 시험: `PROTOTYPE_DATA_ROOT`(설정 폴더 바꾸기) + `PROTOTYPE_SHOT=파일.png`(화면이 뜨면 스크린샷 찍고 닫기).
+- **iPhone**: Safari → 공유 → 홈 화면에 추가 → 아이콘으로 열면 주소창 없는 앱이 돼요. 아이콘(`apple-touch-icon.png`), 노치·홈 막대 여백, 인터넷 없이 열리기(`web/sw.js`)를 넣었어요. 서울 버스는 브라우저 제한 때문에 안 돼요. App Store/TestFlight 앱은 Apple 개발자 계정(연 $99)이 있어야 해요.
+

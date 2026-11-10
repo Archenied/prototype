@@ -7,7 +7,8 @@ if not exist "%CSC%" (
   pause
   exit /b 1
 )
-"%CSC%" /nologo /target:winexe /codepage:65001 /optimize+ /out:Prototype.exe /win32icon:launcher\app.ico /r:System.Windows.Forms.dll /r:System.Management.dll /r:System.Drawing.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll launcher\Launcher.cs
+set W=launcher\webview2
+"%CSC%" /nologo /target:winexe /codepage:65001 /optimize+ /out:Prototype.exe /win32icon:launcher\app.ico /r:System.Windows.Forms.dll /r:System.Management.dll /r:System.Drawing.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:%W%\Microsoft.Web.WebView2.Core.dll /r:%W%\Microsoft.Web.WebView2.WinForms.dll "/resource:%W%\Microsoft.Web.WebView2.Core.dll,wv2.Core.dll" "/resource:%W%\Microsoft.Web.WebView2.WinForms.dll,wv2.WinForms.dll" "/resource:%W%\WebView2Loader.x64.dll,wv2.loader.x64.dll" "/resource:%W%\WebView2Loader.x86.dll,wv2.loader.x86.dll" "/resource:%W%\WebView2Loader.arm64.dll,wv2.loader.arm64.dll" launcher\Launcher.cs launcher\AppWindow.cs
 if errorlevel 1 (
   echo ºôµå ½ÇÆÐ
   pause

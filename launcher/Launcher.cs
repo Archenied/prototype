@@ -33,11 +33,14 @@ static class Launcher
         // 지난 업데이트 때 이름을 바꿔 둔 옛 실행 파일 정리
         try { string old = Path.Combine(dir, "Prototype.old.exe"); if (File.Exists(old)) File.Delete(old); } catch { }
 
-        string edge = FindEdge();
-        if (edge == null)
+        // 앱 창(WebView2)을 쓸 수 있으면 Prototype.exe 자신의 창으로 연다. 이미 열려 있으면 그 창을 앞으로.
+        bool ownWindow = Environment.GetEnvironmentVariable("PROTOTYPE_USE_EDGE") != "1" && WebView2Setup.Prepare() && WebView2Setup.RuntimeAvailable();
+        Mutex single = null;
+        if (ownWindow)
         {
-            Fail("Microsoft Edge를 찾을 수 없어요.\n\nEdge가 설치되어 있어야 앱 창을 열 수 있어요.");
-            return 1;
+            bool first;
+            single = new Mutex(true, "Local\\Prototype-TWT-window", out first);
+            if (!first) { ActivateExisting(); return 0; }
         }
 
         Process node = null;
@@ -45,6 +48,27 @@ static class Launcher
         {
             node = StartServer(dir, server);
             if (node == null) return 1;
+        }
+
+        if (ownWindow)
+        {
+            string err = RunOwnWindow(dir, server, ref node);
+            if (err == null)
+            {
+                try { if (node != null && !node.HasExited) node.Kill(); } catch { }
+                Log(dir, "app closed");
+                GC.KeepAlive(single);
+                return 0;
+            }
+            Log(dir, "app window failed, using Edge: " + err);
+        }
+
+        string edge = FindEdge();
+        if (edge == null)
+        {
+            if (node != null) try { node.Kill(); } catch { }
+            Fail("Microsoft Edge를 찾을 수 없어요.\n\nEdge가 설치되어 있어야 앱 창을 열 수 있어요.");
+            return 1;
         }
 
         // 앱 전용 Edge 프로필: 설정·마지막 데이터가 여기에 저장되고, 창을 닫을 때까지 기다릴 수 있다.
@@ -87,6 +111,55 @@ static class Launcher
         }
         return 0;
     }
+
+    // 자신의 앱 창을 연다. 창이 열려 있는 동안 서버가 업데이트(종료 코드 42)로 끝나면 서버만 다시 켠다.
+    // 창을 못 열면 이유를 돌려준다 (그러면 Edge 창으로 연다). 정상으로 닫히면 null.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    static string RunOwnWindow(string dir, string server, ref Process node)
+    {
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+        var win = new AppWindow(Url);
+        Process current = node;
+        bool closed = false;
+        if (current != null)
+        {
+            var watch = new Thread(() =>
+            {
+                while (!closed)
+                {
+                    Thread.Sleep(500);
+                    Process n = current;
+                    if (n == null || !n.HasExited || closed) continue;
+                    if (n.ExitCode != 42) break; // 서버가 다른 이유로 끝남: 그대로 둔다
+                    Log(dir, "update: restarting server");
+                    current = StartServer(dir, server);
+                }
+            });
+            watch.IsBackground = true;
+            watch.Start();
+        }
+        Application.Run(win);
+        closed = true;
+        node = current;
+        return win.Failed ? (win.Error ?? "unknown") : null;
+    }
+
+    // 이미 열린 앱 창을 앞으로 가져온다.
+    static void ActivateExisting()
+    {
+        int me = Process.GetCurrentProcess().Id;
+        foreach (Process p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Application.ExecutablePath)))
+        {
+            if (p.Id == me || p.MainWindowHandle == IntPtr.Zero) continue;
+            if (IsIconic(p.MainWindowHandle)) ShowWindow(p.MainWindowHandle, 9);
+            SetForegroundWindow(p.MainWindowHandle);
+            return;
+        }
+    }
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
 
     // 숨은 창으로 서버를 켜고 준비될 때까지 기다린다. 실패하면 안내를 띄우고 null.
     static Process StartServer(string dir, string server)

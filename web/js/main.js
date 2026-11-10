@@ -15,11 +15,15 @@ import { feedbackView } from './views/feedback.js';
 import { toggleDebug } from './views/debug.js';
 import { applyTheme } from './i18n.js';
 import { startUpdateCheck } from './update.js';
-import { installDirect } from './direct.js';
+import { installDirect, DIRECT, NATIVE } from './direct.js';
 import { startClock } from './clock.js';
 
 applyTheme(); // 화면 모드·언어를 가장 먼저 적용 (깜빡임 방지)
 installDirect(); // 모바일 웹(GitHub Pages)이면 '/api' 요청을 브라우저 안에서 처리
+// 모바일 웹·iPhone 홈 화면 앱: 인터넷이 없어도 열리게 앱 파일 저장 (Windows·Android 앱은 파일이 이미 안에 있음)
+if (DIRECT && !NATIVE && location.protocol === 'https:' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* 무시 */ });
+}
 
 route(/^\/onboarding$/, onboardingView);
 route(/^\/home$/, homeView);
