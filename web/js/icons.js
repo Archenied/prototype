@@ -62,4 +62,4 @@ export function icon(name, cls = '') {
 }
 
 export const KIND_ICON = { bus: 'bus', subway: 'subway', route: 'route', signal: 'signal' };
-export const WX_ICON = { clear: 'sun', partly: 'partly', cloudy: 'cloud', overcast: 'overcast', rain: 'rain', sleet: 'rain', snow: 'snow' };
+export const WX_ICON = { clear: 'sun', partly: 'partly', cloudy: 'cloud', overcast: 'overcast', rain: 'rain', sleet: 'rain', snow: 'snow', fog: 'overcast', storm: 'rain' };

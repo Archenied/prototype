@@ -20,7 +20,7 @@ def copyWebAssets = tasks.register('copyWebAssets', Sync) {
     from(new File(repoRoot, 'web'))
     from(new File(repoRoot, 'version.json'))
     from(new File(repoRoot, 'server')) {
-        include 'errors.mjs', 'places.mjs', 'demo.mjs', 'live.mjs', 'datagokr.mjs'
+        include 'errors.mjs', 'places.mjs', 'demo.mjs', 'live.mjs', 'datagokr.mjs', 'openmeteo.mjs'
         into 'js/providers'
     }
 }

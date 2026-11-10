@@ -19,6 +19,7 @@ import * as live from './live.mjs';
 import * as dg from './datagokr.mjs';
 import { remoteRelease, downloadUpdate, compareVersions } from './updater.mjs';
 import { ntpOffset } from './ntp.mjs';
+import * as om from './openmeteo.mjs';
 
 export const APP_ID = 'prototype-twt';
 export const VERSION = (() => { try { return JSON.parse(readFileSync(new URL('../version.json', import.meta.url), 'utf8')).version; } catch { return '1.0.0'; } })();
@@ -117,7 +118,8 @@ async function applyFault(type) {
 // 같은 대상의 요청이 동시에 오면 하나로 묶고, 짧은 시간 안의 반복은 마지막 결과를 재사용한다.
 // weather 60초: 기상청 실황은 1시간마다 바뀌지만, 새 관측이 나오면 1분 안에 보이게 한다.
 // bus 8초: 앱이 10초마다 물어볼 때 항상 새로 받도록.
-const TTL = { weather: 60e3, bus: 8e3, subway: 15e3, subwayStatus: 60e3, route: 120e3, signal: 4e3, search: 600e3, regions: 86400e3, places: 600e3 };
+const OM_SOURCE = 'Open-Meteo (open-meteo.com) · 기상 모델·대기질 예보';
+const TTL = { weatherDetail: 600e3, weather: 60e3, bus: 8e3, subway: 15e3, subwayStatus: 60e3, route: 120e3, signal: 4e3, search: 600e3, regions: 86400e3, places: 600e3 };
 const cache = new Map();
 const inflight = new Map();
 
@@ -288,6 +290,12 @@ async function api(req, res, url) {
   }
 
   // 날씨
+  if (p === '/api/weather/detail') {
+    // 날씨 자세히 (Open-Meteo, 키 필요 없음). 10분마다 새로 받는다.
+    const lat = num(q.get('lat')), lon = num(q.get('lon'));
+    const v = await cached('weatherDetail', `${lat.toFixed(2)},${lon.toFixed(2)}`, () => om.weatherDetail(lat, lon));
+    return send(res, 200, { data: v, source: OM_SOURCE, mode: 'live', fetchedAt: Date.now() });
+  }
   if (p === '/api/weather') {
     const lat = num(q.get('lat')), lon = num(q.get('lon'));
     const v = await cached('weather', `${lat.toFixed(2)},${lon.toFixed(2)}`, () => (modeOf('weather', keys) === 'live' ? live.weather(keys, lat, lon) : demo.weather(lat, lon)));

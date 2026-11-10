@@ -12,6 +12,8 @@ import { track } from './metrics.js';
 export const POLICY = {
   // 사용자 요청 (2026-11-09): 날씨·버스 10초마다. 서버가 하루 호출 한도를 넘지 않게 따로 조절한다.
   weather: { interval: 10e3, minGap: 5e3 },
+  // 날씨 자세히 (Open-Meteo): 모델이 1시간마다 바뀌어서 10분이면 충분
+  weatherDetail: { interval: 10 * 60e3, minGap: 5 * 60e3 },
   bus: { interval: 10e3, minGap: 5e3 },
   subway: { interval: 30e3, minGap: 15e3 },
   subwayStatus: { interval: 2 * 60e3, minGap: 60e3 },

@@ -33,7 +33,7 @@ jobs:
           cp version.json _site/version.json
           cp -r web/* _site/app/
           cp version.json _site/app/version.json
-          cp server/errors.mjs server/places.mjs server/demo.mjs server/live.mjs server/datagokr.mjs _site/app/js/providers/
+          cp server/errors.mjs server/places.mjs server/demo.mjs server/live.mjs server/datagokr.mjs server/openmeteo.mjs _site/app/js/providers/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

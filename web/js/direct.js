@@ -23,10 +23,10 @@ export function setKeys(k) {
 let P = null; // 공급자 모듈들
 async function providers() {
   if (P) return P;
-  const [errors, demo, live, dg] = await Promise.all([
-    import('./providers/errors.mjs'), import('./providers/demo.mjs'), import('./providers/live.mjs'), import('./providers/datagokr.mjs'),
+  const [errors, demo, live, dg, om] = await Promise.all([
+    import('./providers/errors.mjs'), import('./providers/demo.mjs'), import('./providers/live.mjs'), import('./providers/datagokr.mjs'), import('./providers/openmeteo.mjs'),
   ]);
-  P = { errors, demo, live, dg };
+  P = { errors, demo, live, dg, om };
   return P;
 }
 
@@ -50,7 +50,7 @@ function sourceOf(type, k, demoSource) {
 }
 
 // 짧은 시간 안의 같은 요청은 재사용 (서버와 같은 간격)
-const TTL = { weather: 60e3, bus: 8e3, subway: 15e3, subwayStatus: 60e3, route: 120e3, signal: 4e3, search: 600e3, regions: 86400e3, places: 600e3 };
+const TTL = { weatherDetail: 600e3, weather: 60e3, bus: 8e3, subway: 15e3, subwayStatus: 60e3, route: 120e3, signal: 4e3, search: 600e3, regions: 86400e3, places: 600e3 };
 const cache = new Map();
 async function cached(type, key, fn) {
   const k = type + '|' + key;
@@ -80,7 +80,7 @@ async function appVersion() {
 }
 
 async function handle(url, init) {
-  const { errors, demo, live, dg } = await providers();
+  const { errors, demo, live, dg, om } = await providers();
   const { ApiError, STATUS_BY_KIND } = errors;
   const p = url.pathname;
   const q = url.searchParams;
@@ -112,6 +112,11 @@ async function handle(url, init) {
     if (p === '/api/places/search') {
       const term = str(q.get('q'));
       return ok('places', await cached('places', term, () => (providerOf('places', k) === 'live' ? live.searchPlaces(k, term) : demo.searchPlaces(term))));
+    }
+    if (p === '/api/weather/detail') {
+      const lat = num(q.get('lat')), lon = num(q.get('lon'));
+      const v = await cached('weatherDetail', `${lat.toFixed(2)},${lon.toFixed(2)}`, () => om.weatherDetail(lat, lon));
+      return json(200, { data: v, source: 'Open-Meteo (open-meteo.com) · 기상 모델·대기질 예보', mode: 'live', fetchedAt: Date.now() });
     }
     if (p === '/api/weather') {
       const lat = num(q.get('lat')), lon = num(q.get('lon'));

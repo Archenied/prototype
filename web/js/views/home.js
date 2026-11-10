@@ -11,6 +11,7 @@ import { go, config } from '../app.js';
 import { track } from '../metrics.js';
 import { t } from '../i18n.js';
 import { now as clockNow, nowDate } from '../clock.js';
+import { weatherMore, windText, keepOuterScroll } from './weather.js';
 
 const TYPE_NAME = { bus: '버스', subway: '지하철', route: '경로', signal: '신호등' };
 const KIND_NAME = { bus: '버스 정류장', subway: '지하철역', route: '경로', signal: '신호등' };
@@ -25,6 +26,7 @@ let launchMetricsDone = { clock: false, weather: false, transit: false };
 function weatherKey(region) {
   return region.kind === 'current' ? 'weather:current' : `weather:${region.id}`;
 }
+const detailKey = (region) => 'wxd:' + weatherKey(region);
 
 function registerAll() {
   const keys = [];
@@ -48,6 +50,14 @@ function registerAll() {
       register({ key, type: 'weather', metricType: 'weather', url: () => `/api/weather?lat=${coarse(region.lat)}&lon=${coarse(region.lon)}` });
     }
     keys.push(key);
+    // 날씨 자세히 (7일·기압·구름·안개·대기질 등)
+    const dk = detailKey(region);
+    if (region.kind === 'current') {
+      register({ key: dk, type: 'weatherDetail', metricType: 'weather', fetch: async () => { const pos = await silentLocation(); return getJSON(`/api/weather/detail?lat=${coarse(pos.lat)}&lon=${coarse(pos.lon)}`); } });
+    } else {
+      register({ key: dk, type: 'weatherDetail', metricType: 'weather', url: () => `/api/weather/detail?lat=${coarse(region.lat)}&lon=${coarse(region.lon)}` });
+    }
+    keys.push(dk);
   }
   for (const t of state.targets) {
     const key = `t:${t.id}`;
@@ -506,7 +516,9 @@ function weatherDetail() {
     return h('div.card', { style: { height: '100%' } }, h('div.card-title', icon('sun', 'icon-sm'), regionName(region, v)), h('div', { style: { marginTop: '12px' } }, inner));
   }
   const d = v.data;
-  return h(
+  const vd = view(detailKey(region));
+  const n = vd.data?.now;
+  return keepOuterScroll(h(
     'div.wx-detail',
     h(
       'section.card',
@@ -519,6 +531,9 @@ function weatherDetail() {
         h('div.wx-stat', h('div.k', '습도 (공기 속 물기)'), h('div.v', `${d.humidity}%`)),
         h('div.wx-stat', h('div.k', '바람'), h('div.v', `${d.wind}m/s`)),
         h('div.wx-stat', h('div.k', '1시간 강수'), h('div.v', d.rain1h ? `${d.rain1h}mm` : '없음')),
+        n ? h('div.wx-stat', h('div.k', '체감온도'), h('div.v', `${Math.round(n.feels)}°`)) : null,
+        n ? h('div.wx-stat', h('div.k', '기압'), h('div.v', `${Math.round(n.pres)} hPa`)) : null,
+        n ? h('div.wx-stat.wide', h('div.k', '바람 방향'), h('div.v', windText(n.windDir))) : null,
       ),
       d.code === 'rain' || d.code === 'sleet' || d.code === 'snow' || d.hourly?.some((x) => x.code === 'rain' || x.code === 'snow' || x.code === 'sleet')
         ? h('div.notice.warn', { style: { marginTop: '12px' } }, icon('umbrella'), '비나 눈 소식이 있어요. 우산을 챙기세요.')
@@ -526,16 +541,8 @@ function weatherDetail() {
       errorNotice(key, v),
       meta(v),
     ),
-    h(
-      'section.card',
-      { 'aria-label': '시간별 예보' },
-      h('div.card-title', icon('clock', 'icon-sm'), '앞으로 6시간'),
-      d.hourly?.length
-        ? h('div.hourly', d.hourly.map((x) => h('div.hour', h('div.h', `${x.hour}시`), weatherIcon(x.code), h('div.t', `${Math.round(x.temp)}°`), h('div.pop', x.pop != null && x.pop >= 30 ? `${x.pop}%` : ''))))
-        : h('p.muted', { style: { marginTop: '10px' } }, '시간별 예보가 없어요.'),
-      h('p.small.faint', { style: { marginTop: '12px' } }, '기온은 정시 기준 예보예요. 갱신 시각과 출처는 왼쪽 카드에 있어요.'),
-    ),
-  );
+    weatherMore(vd, meta(vd)),
+  ));
 }
 
 function transitDetail(tab, layout, pageIndex) {
