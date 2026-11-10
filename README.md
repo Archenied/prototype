@@ -97,7 +97,7 @@ data.go.kr에서 활용신청할 서비스 (검색창에 이름을 넣고 → �
 
 ## Windows exe 하나로 설치 · Android 앱 · 시계 보정 (1.3.0)
 
-- **Prototype.exe 하나만 받아도 돼요**: 옆에 `server` 폴더가 없으면 GitHub(main ZIP)에서 앱을 받아 `%LOCALAPPDATA%\Prototype-TWTpp`에 설치하고, 바탕화면·시작 메뉴에 "프로토타입" 바로 가기를 만든 뒤 그곳의 앱을 실행해요. 업데이트는 그 폴더에서 평소처럼 받아요. (ZIP을 풀어서 쓰는 방법도 그대로 됩니다.)
+- **Prototype.exe 하나만 받아도 돼요**: 옆에 `server` 폴더가 없으면 GitHub(main ZIP)에서 앱을 받아 `%LOCALAPPDATA%\Prototype-TWT\app`에 설치하고, 바탕화면·시작 메뉴에 "프로토타입" 바로 가기를 만든 뒤 그곳의 앱을 실행해요. 업데이트는 그 폴더에서 평소처럼 받아요. (ZIP을 풀어서 쓰는 방법도 그대로 됩니다.)
 - **Android 앱** (`android/`): 화면 파일(`web/` + 공급자 코드)이 APK 안에 들어 있는 WebView 앱이에요. 앱이 서울 버스 API(http)를 대신 받아 줘서 서울 버스도 보여요. GitHub Releases에 새 APK가 있으면 왼쪽 아래 업데이트 → 설치 화면이 열려요.
   - 빌드: `.github/workflows/android.yml`이 version.json이 바뀔 때 APK를 만들고, 가상 휴대폰(에뮬레이터)에 설치해 실행해 본 뒤 Release(`v버전`)에 `Prototype.apk`·`Prototype.exe`를 올려요.
   - 서명 키: 저장소 Secrets(`PROTO_KEYSTORE_B64`, `PROTO_KEYSTORE_PASSWORD`, `PROTO_KEY_ALIAS`, `PROTO_KEY_PASSWORD`). 백업은 이 PC의 `Downloads\Claude product\prototype-signing\`에만 있어요 (GitHub에 올리지 않음). **잃어버리면 새 버전을 옛 앱 위에 설치할 수 없어요.**

@@ -10,7 +10,6 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -43,7 +42,6 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends Activity {
@@ -96,8 +94,24 @@ public class MainActivity extends Activity {
             }
         });
 
+        warnOldWebView();
         if (saved != null) web.restoreState(saved);
         else web.loadUrl(ORIGIN + "/index.html");
+    }
+
+    // 화면은 휴대폰의 'Android System WebView'로 그린다. 너무 오래되면(크롬 103 미만) 업데이트를 안내한다.
+    void warnOldWebView() {
+        if (Build.VERSION.SDK_INT < 26) return;
+        try {
+            android.content.pm.PackageInfo p = WebView.getCurrentWebViewPackage();
+            if (p == null || p.versionName == null) return;
+            int major = Integer.parseInt(p.versionName.split("[.]")[0]);
+            if (major >= 103) return;
+            Toast.makeText(this, "Play 스토어에서 'Android System WebView'를 업데이트해 주세요. 지금 버전(" + major + ")은 너무 오래돼서 앱이 잘 안 보일 수 있어요.", Toast.LENGTH_LONG).show();
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + p.packageName));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try { startActivity(i); } catch (Exception ignored) { }
+        } catch (Exception ignored) { }
     }
 
     boolean hasLocationPermission() {
