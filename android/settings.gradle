@@ -1,0 +1,17 @@
+// 프로토타입 Android 앱 (web/ 화면을 앱 안에 넣어서 보여 주는 WebView 앱)
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = 'Prototype'
+include ':app'

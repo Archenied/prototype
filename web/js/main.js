@@ -16,6 +16,7 @@ import { toggleDebug } from './views/debug.js';
 import { applyTheme } from './i18n.js';
 import { startUpdateCheck } from './update.js';
 import { installDirect } from './direct.js';
+import { startClock } from './clock.js';
 
 applyTheme(); // 화면 모드·언어를 가장 먼저 적용 (깜빡임 방지)
 installDirect(); // 모바일 웹(GitHub Pages)이면 '/api' 요청을 브라우저 안에서 처리
@@ -48,6 +49,7 @@ async function loadConfig() {
 function boot() {
   track('app_launch', { firstLaunch: wasNewInstall() });
   startNetWatch();
+  startClock(); // 기기 시계 + 인터넷 표준 시각 보정
   startScheduler();
   startAlarms();
   setOpenHomeHandler(() => {

@@ -10,6 +10,7 @@ import { silentLocation, coarse, openWindowsSettings } from '../location.js';
 import { go, config } from '../app.js';
 import { track } from '../metrics.js';
 import { t } from '../i18n.js';
+import { now as clockNow, nowDate } from '../clock.js';
 
 const TYPE_NAME = { bus: '버스', subway: '지하철', route: '경로', signal: '신호등' };
 const KIND_NAME = { bus: '버스 정류장', subway: '지하철역', route: '경로', signal: '신호등' };
@@ -128,7 +129,7 @@ function loadingBlock(lines = 3) {
 }
 
 /* ───────── 교통 항목 내용 ───────── */
-function futureArrivals(arrivals, now = Date.now()) {
+function futureArrivals(arrivals, now = clockNow()) {
   return (arrivals || []).filter((a) => a.arriveAt > now - 20e3);
 }
 
@@ -282,7 +283,7 @@ function targetCard(t, { compact = false } = {}) {
 /* ───────── 요약 영역 ───────── */
 // 시:분:초 + 100분의 1초(.00). 숫자는 화면 갱신 때마다 제자리에서 바꾼다 (updateClockText).
 function clockCard() {
-  const now = new Date();
+  const now = nowDate();
   const { dayPeriod, time } = fmtClock(now, true);
   return h(
     'section.card.clock-card',
@@ -297,7 +298,7 @@ function clockCard() {
 }
 
 function updateClockText(root) {
-  const now = new Date();
+  const now = nowDate();
   const cs = root.querySelector('[data-clock="cs"]');
   if (!cs) return;
   cs.textContent = '.' + String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
@@ -741,10 +742,10 @@ export function homeView() {
   }
 
   // 1초마다 시각·카운트다운·'n분 전'만 제자리에서 고친다 (버튼 누르는 중에 화면이 바뀌지 않게)
-  let lastMinute = new Date().getMinutes();
+  let lastMinute = nowDate().getMinutes();
   function tickText() {
-    const now = Date.now();
-    const m = new Date().getMinutes();
+    const now = clockNow();
+    const m = new Date(now).getMinutes();
     if (m !== lastMinute) { lastMinute = m; swap(clockSlot, clockCard()); }
     updateClockText(clockSlot);
     for (const e of el.querySelectorAll('[data-arrive]')) e.textContent = etaText(Number(e.dataset.arrive), now);

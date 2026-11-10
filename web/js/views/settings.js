@@ -1,13 +1,25 @@
 // S-03 설정 · S-12 데이터 출처 정보
 // 설정은 권한을 묻지 않고, 외부 조회도 하지 않아서 오프라인에서도 그대로 열린다.
 import { h, btn, toast } from '../ui.js';
-import { DIRECT, getKeys, setKeys } from '../direct.js';
+import { DIRECT, NATIVE, getKeys, setKeys } from '../direct.js';
+import { clockInfo } from '../clock.js';
 import { icon } from '../icons.js';
 import { state, homeRegion, regionLabel } from '../store.js';
 import { go, page, APP_VERSION, config, render } from '../app.js';
 import { notificationSupport } from '../alarms.js';
 import { postJSON } from '../net.js';
 import { prefs, setTheme, setLang } from '../i18n.js';
+
+// 시계가 인터넷 표준 시각과 얼마나 맞는지
+function clockText() {
+  const c = clockInfo();
+  const en = prefs.lang === 'en';
+  if (!c.at || c.source === 'device') return en ? "Not checked yet · using this device's clock" : '아직 확인 못 했어요 · 기기 시계를 써요';
+  const sec = Math.abs(c.offset / 1000).toFixed(1);
+  if (!c.applied) return en ? `This device's clock is accurate (within ${sec}s)` : `기기 시계가 정확해요 (차이 ${sec}초)`;
+  const slow = c.offset > 0;
+  return en ? `This device's clock is ${sec}s ${slow ? 'slow' : 'fast'} · showing the corrected time` : `기기 시계가 ${sec}초 ${slow ? '느려서' : '빨라서'} 고친 시각을 보여 줘요`;
+}
 
 // 작은 선택 버튼 묶음 (화면 모드·언어)
 function segment(options, value, onPick, label) {
@@ -46,7 +58,7 @@ function mobileKeys() {
   const kakaoKey = h('input.input', { id: 'k-kakao', value: k.KAKAO_REST_KEY || '', autocomplete: 'off', spellcheck: 'false' });
   return h(
     'div.card.stack',
-    h('p.small.muted', '키를 넣으면 실제 날씨·경기 버스·지하철 시간표·신호등 정보가 보여요. 키는 이 휴대폰 브라우저에만 저장되고 어디에도 보내지 않아요 (각 기관에 조회할 때만 써요).'),
+    h('p.small.muted', NATIVE ? '키를 넣으면 실제 날씨·서울·경기 버스·지하철 시간표·신호등 정보가 보여요. 키는 이 휴대폰 앱에만 저장되고 어디에도 보내지 않아요 (각 기관에 조회할 때만 써요).' : '키를 넣으면 실제 날씨·경기 버스·지하철 시간표·신호등 정보가 보여요. 키는 이 휴대폰 브라우저에만 저장되고 어디에도 보내지 않아요 (각 기관에 조회할 때만 써요).'),
     h('div.field', h('label', { for: 'k-data' }, '공공데이터포털 키 (필수)'), dataKey),
     h('div.field', h('label', { for: 'k-kakao' }, '카카오 REST API 키 (선택)'), kakaoKey),
     h('div.footer-actions', btn('키 저장', { kind: 'primary', iconName: 'key', onClick: () => {
@@ -103,6 +115,7 @@ export function settingsView({ query }) {
     ),
     DIRECT ? h('h2.section-title', 'API 키 (이 휴대폰에만 저장)') : h('h2.section-title', 'API 키 상태 (Windows 버전)'),
     DIRECT ? mobileKeys() : keysGroup,
+    h('div.group', h('div.item', h('div.grow', h('div.title', '시간 맞추기'), h('div.desc', clockText())))),
     h('div.group', h('div.item', h('div.grow', h('div.title', '앱 정보'), h('div.desc', '설정은 이 PC에만 저장돼요. 로그인은 필요 없어요.')), h('span.value', `버전 ${APP_VERSION}`))),
   );
   return {

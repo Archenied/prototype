@@ -38,6 +38,12 @@ function render() {
 }
 
 async function apply() {
+  if (info?.native) {
+    // Android 앱: GitHub에서 새 앱(.apk)을 받아 설치 화면을 연다.
+    try { await fetch('/api/update/apply', { method: 'POST' }); } catch { /* 무시 */ }
+    swap(slot, h('span.spinner'), h('span', t('새 앱을 받는 중이에요. 설치 화면이 열리면 "업데이트"(또는 "설치")를 눌러 주세요.')));
+    return;
+  }
   if (!info?.canRestart) {
     // 예전 실행 파일이거나 개발용 서버: 직접 다시 열어야 한다.
     swap(slot, icon('info', 'icon-sm'), h('span', t('앱을 닫고 Prototype.exe를 다시 열면 업데이트돼요.')));

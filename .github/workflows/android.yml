@@ -1,0 +1,120 @@
+# Android 앱(.apk)을 만들고, 에뮬레이터(가상 휴대폰)에 설치해 실행해 본 뒤 GitHub Release에 올린다.
+#   받는 주소: https://github.com/Archenied/prototype/releases/latest/download/Prototype.apk
+# 서명 키는 저장소 Secrets(PROTO_KEYSTORE_B64 등)에 있다. 같은 키로 서명해야 새 버전이 옛 앱 위에 설치된다.
+name: Android app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - version.json
+      - android/**
+      - .github/workflows/android.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: ver
+        run: echo "version=$(node -p "JSON.parse(require('fs').readFileSync('version.json','utf8').replace(/^﻿/,'')).version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.PROTO_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::PROTO_KEYSTORE_B64 secret is missing"; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "PROTO_KEYSTORE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+      - name: Build APK
+        env:
+          PROTO_KEYSTORE_PASSWORD: ${{ secrets.PROTO_KEYSTORE_PASSWORD }}
+          PROTO_KEY_ALIAS: ${{ secrets.PROTO_KEY_ALIAS }}
+          PROTO_KEY_PASSWORD: ${{ secrets.PROTO_KEY_PASSWORD }}
+        run: |
+          gradle -p android --no-daemon assembleRelease
+          cp android/app/build/outputs/apk/release/app-release.apk Prototype.apk
+          ls -l Prototype.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: Prototype.apk
+
+  # 가상 휴대폰에 설치 → 실행 → 화면이 뜨는지 확인 (스크린샷은 실행 결과의 Artifacts에)
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: |
+            adb install -r Prototype.apk
+            adb logcat -c
+            adb shell am start -W -n io.github.archenied.prototype/.MainActivity
+            sleep 25
+            adb shell pidof io.github.archenied.prototype
+            adb exec-out screencap -p > screen.png
+            adb logcat -d > logcat.txt
+            grep -E "chromium.*(Uncaught|SyntaxError|TypeError|ReferenceError)" logcat.txt && exit 1 || true
+            grep -E "FATAL EXCEPTION" logcat.txt && exit 1 || true
+            adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml ui.xml || true
+            echo "app ran OK"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: emulator-test
+          path: |
+            screen.png
+            logcat.txt
+            ui.xml
+
+  release:
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          TAG="v$VERSION"
+          node -e "const v=JSON.parse(require('fs').readFileSync('version.json','utf8').replace(/^﻿/,''));console.log('프로토타입 '+v.version+'\n\n'+(v.notes||[]).map(n=>'- '+n).join('\n')+'\n\nAndroid: Prototype.apk · Windows: Prototype.exe')" > notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" Prototype.apk Prototype.exe --clobber
+            gh release edit "$TAG" --notes-file notes.md --latest
+          else
+            gh release create "$TAG" Prototype.apk Prototype.exe --title "프로토타입 $VERSION" --notes-file notes.md --latest
+          fi

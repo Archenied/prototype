@@ -1,5 +1,6 @@
 // 출발 시각 알림 (F-08, R-15) — 웹 버전 규칙: 브라우저(Windows) 알림으로 표시, 앱이 열려 있어야 울림.
 import { state, saveAlarm, saveQuiet } from './store.js';
+import { now as clockNow } from './clock.js';
 
 export const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -9,7 +10,7 @@ export function notificationSupport() {
 }
 
 // 다음 알림 예정 일시 계산
-export function nextFire(alarm, from = Date.now()) {
+export function nextFire(alarm, from = clockNow()) {
   const base = new Date(from);
   for (let d = 0; d <= 7; d++) {
     const c = new Date(base.getFullYear(), base.getMonth(), base.getDate() + d, alarm.hour, alarm.minute, 0, 0);
@@ -31,7 +32,7 @@ export function repeatText(alarm) {
 }
 
 // 저장할 때 보여 줄 예약 안내 문구 (F-08-AC-06, AC-07)
-export function scheduleNotice(alarm, now = Date.now()) {
+export function scheduleNotice(alarm, now = clockNow()) {
   const next = alarm.nextAt;
   if (!next) return '';
   const n = new Date(next);
@@ -70,7 +71,7 @@ function fire(alarm) {
 }
 
 function check() {
-  const now = Date.now();
+  const now = clockNow();
   let changed = false;
   for (const a of state.alarms) {
     if (!a.enabled || !a.nextAt || a.nextAt > now) continue;

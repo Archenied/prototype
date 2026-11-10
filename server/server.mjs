@@ -18,6 +18,7 @@ import * as demo from './demo.mjs';
 import * as live from './live.mjs';
 import * as dg from './datagokr.mjs';
 import { remoteRelease, downloadUpdate, compareVersions } from './updater.mjs';
+import { ntpOffset } from './ntp.mjs';
 
 export const APP_ID = 'prototype-twt';
 export const VERSION = (() => { try { return JSON.parse(readFileSync(new URL('../version.json', import.meta.url), 'utf8')).version; } catch { return '1.0.0'; } })();
@@ -254,6 +255,12 @@ async function api(req, res, url) {
       sources: Object.fromEntries(Object.keys(LIVE_SOURCE).map((t) => [t, sourceOf(t, keys)])),
       platform: process.platform,
     });
+  }
+  if (p === '/api/time') {
+    // 인터넷 표준 시각(NTP). 못 재면 이 PC 시계를 그대로 돌려준다 (화면은 기기 시계를 계속 씀).
+    const n = faults.network === 'offline' ? null : await ntpOffset().catch(() => null);
+    if (!n) return send(res, 200, { trueNow: Date.now(), source: 'device', precisionMs: 1e9 });
+    return send(res, 200, { trueNow: Date.now() + n.offset, source: 'ntp:' + n.host, precisionMs: Math.max(20, Math.round(n.rtt / 2)) });
   }
   if (p === '/api/net') {
     if (faults.network === 'offline') return send(res, 200, { online: false });

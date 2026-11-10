@@ -1,5 +1,6 @@
 // 화면 조립 도우미: 요소 만들기, 대화상자, 알림 토스트, 시간 표시 형식.
 import { icon } from './icons.js';
+import { now as clockNow } from './clock.js';
 import { t, prefs, locale as prefLocale } from './i18n.js';
 
 const TRANSLATED_ATTRS = new Set(['title', 'aria-label', 'placeholder', 'alt']);
@@ -181,7 +182,7 @@ export function fmtDateTime(ts) {
   return new Intl.DateTimeFormat(locale(), { month: 'numeric', day: 'numeric', weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(ts));
 }
 // 지난 시간: "12초 전", "1분 5초 전", "2시간 3분 전" (매초 갱신)
-export function ago(ts, now = Date.now()) {
+export function ago(ts, now = clockNow()) {
   const s = Math.max(0, Math.floor((now - ts) / 1000));
   const en = prefs.lang === 'en';
   if (s < 60) return en ? `${s}s ago` : `${s}초 전`;
@@ -191,7 +192,7 @@ export function ago(ts, now = Date.now()) {
   if (hh < 24) return en ? `${hh}h ${m % 60}m ago` : `${hh}시간 ${m % 60}분 전`;
   return en ? `${Math.floor(hh / 24)}d ago` : `${Math.floor(hh / 24)}일 전`;
 }
-export function etaText(arriveAt, now = Date.now()) {
+export function etaText(arriveAt, now = clockNow()) {
   const s = Math.round((arriveAt - now) / 1000);
   if (s <= 60) return prefs.lang === 'en' ? 'Arriving' : '곧 도착';
   return prefs.lang === 'en' ? `${Math.floor(s / 60)} min` : `${Math.floor(s / 60)}분`;

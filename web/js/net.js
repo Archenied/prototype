@@ -87,7 +87,7 @@ export async function postJSON(path, data, { timeout = 10000 } = {}) {
 
 // 원인별 안내 문구 (기술 용어 없이 한 문장)
 export function errorText(kind, detail) {
-  if (detail === 'https') return '서울 버스 정보는 Windows 버전에서만 볼 수 있어요. (서울시 버스 API가 휴대폰 브라우저의 보안 연결을 지원하지 않아요)';
+  if (detail === 'https') return '서울 버스 정보는 Windows 버전과 Android 앱에서만 볼 수 있어요. (서울시 버스 API가 휴대폰 브라우저의 보안 연결을 지원하지 않아요)';
   if (detail === 'mobile') return '이 기능은 모바일 웹 버전에서는 아직 쓸 수 없어요. Windows 버전에서 써 주세요.';
   if (detail === 'key') return '이 정보는 아직 쓸 수 없어요. data.go.kr에서 이 서비스 활용신청이 승인됐는지, API_KEYS.bat의 키가 맞는지 확인해 주세요.';
   switch (kind) {

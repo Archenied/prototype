@@ -71,6 +71,7 @@ data.go.kr에서 활용신청할 서비스 (검색창에 이름을 넣고 → �
 - **지하철**: 공공데이터포털 키만 있으면 **시간표 기준**(실시간 아님, 화면에 표시됨)이고 운행 지연 정보도 없습니다. 실시간·지연은 서울 열린데이터광장 키가 필요합니다. 공휴일은 평일 시간표로 계산될 수 있어요.
 - **신호등**: 공공데이터포털 실시간 신호는 2026년 현재 일부 지역(울산 등)만 제공된다는 보고가 있어서, 서울·경기 교차로는 대부분 "신호 정보 제공 안 됨"으로 보일 수 있습니다.
 - **버스**: 서울·경기 정류장 모두 됩니다 (검색하면 두 곳 결과가 함께 나옴).
+- **Android 앱 알림**: Android 앱에서는 출발 알림(브라우저 알림)이 아직 뜨지 않습니다.
 - **iOS 앱**: 기획에 있지만 아직 만들지 않았습니다. 웹 코드는 그대로 다시 쓸 수 있습니다.
 
 ## 인계 진행 상태
@@ -88,8 +89,16 @@ data.go.kr에서 활용신청할 서비스 (검색창에 이름을 넣고 → �
 ## GitHub · 다운로드 페이지 (2026-11-10)
 
 - 코드: https://github.com/Archenied/prototype (공개)
-- 다운로드 페이지: https://archenied.github.io/prototype/ — Windows ZIP, 모바일 웹(`/app/`), Android·iOS(준비 중)
+- 다운로드 페이지: https://archenied.github.io/prototype/ — Windows `Prototype.exe`, Android 앱(APK), 모바일 웹(`/app/`), iOS(준비 중)
 - **자동 업데이트는 GitHub를 봐요**: 앱이 1분마다 GitHub의 `version.json`을 확인하고, 더 새 버전이면 왼쪽 아래에 업데이트가 떠요. 누르면 바뀐 파일만 받아서(지문 확인) 서버를 다시 켜요. `API_KEYS.bat`·`data\`는 건드리지 않아요.
 - **새 버전 내기**: 고친 파일을 다 올린 뒤 마지막에 `version.json`의 버전을 올려서 push하면, 그때 모든 사용자에게 업데이트가 떠요.
 - GitHub에 올리지 않는 것: `API_KEYS.bat`(키), `data\`, 기획 문서(`docs\`, `HANDOFF.md`, `AGENTS.md` 등). 새로 받은 사람은 `API_KEYS.example.bat`이 자동으로 `API_KEYS.bat`으로 복사돼요.
 - 모바일 웹은 서버 없이 휴대폰 브라우저가 공공데이터포털을 직접 불러요. 키는 앱 설정 → API 키에 넣고 그 휴대폰에만 저장돼요. 서울 버스(보안 연결 미지원)·경로 시간·피드백은 Windows 버전에서만 돼요.
+
+## Windows exe 하나로 설치 · Android 앱 · 시계 보정 (1.3.0)
+
+- **Prototype.exe 하나만 받아도 돼요**: 옆에 `server` 폴더가 없으면 GitHub(main ZIP)에서 앱을 받아 `%LOCALAPPDATA%\Prototype-TWTpp`에 설치하고, 바탕화면·시작 메뉴에 "프로토타입" 바로 가기를 만든 뒤 그곳의 앱을 실행해요. 업데이트는 그 폴더에서 평소처럼 받아요. (ZIP을 풀어서 쓰는 방법도 그대로 됩니다.)
+- **Android 앱** (`android/`): 화면 파일(`web/` + 공급자 코드)이 APK 안에 들어 있는 WebView 앱이에요. 앱이 서울 버스 API(http)를 대신 받아 줘서 서울 버스도 보여요. GitHub Releases에 새 APK가 있으면 왼쪽 아래 업데이트 → 설치 화면이 열려요.
+  - 빌드: `.github/workflows/android.yml`이 version.json이 바뀔 때 APK를 만들고, 가상 휴대폰(에뮬레이터)에 설치해 실행해 본 뒤 Release(`v버전`)에 `Prototype.apk`·`Prototype.exe`를 올려요.
+  - 서명 키: 저장소 Secrets(`PROTO_KEYSTORE_B64`, `PROTO_KEYSTORE_PASSWORD`, `PROTO_KEY_ALIAS`, `PROTO_KEY_PASSWORD`). 백업은 이 PC의 `Downloads\Claude product\prototype-signing\`에만 있어요 (GitHub에 올리지 않음). **잃어버리면 새 버전을 옛 앱 위에 설치할 수 없어요.**
+- **시계 보정**: 화면 시계는 기기 시계로 매끄럽게 움직이고, 인터넷 표준 시각(NTP: time.google.com 등)과 0.3초 넘게 다르면 그 차이만큼 고쳐서 보여 줘요. 10분마다·인터넷이 다시 연결될 때·기기 시계가 갑자기 바뀔 때 다시 재요. 인터넷이 끊겨도 마지막 보정값을 계속 써요. 설정 → **시간 맞추기**에 지금 상태가 나와요. (PC: 서버가 NTP, Android: 앱이 NTP, 휴대폰 브라우저: 웹 서버 시각, 1초 단위)

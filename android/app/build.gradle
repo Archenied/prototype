@@ -1,0 +1,81 @@
+// 앱 버전은 저장소의 version.json에서, 화면 파일은 web/ 과 server/의 공급자 코드에서 가져온다.
+// (GitHub Pages의 /app/ 을 만드는 것과 같은 방식: .github/workflows/pages.yml)
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'com.android.application'
+}
+
+def repoRoot = rootProject.file('..')
+def versionInfo = new JsonSlurper().parseText(new File(repoRoot, 'version.json').getText('UTF-8').replaceFirst('^﻿', ''))
+def appVersion = versionInfo.version as String
+def vParts = appVersion.tokenize('.').collect { it as int }
+def appVersionCode = vParts[0] * 10000 + vParts[1] * 100 + vParts[2]
+
+def genAssets = layout.buildDirectory.dir('generated/appassets')
+def genRes = layout.buildDirectory.dir('generated/appres')
+
+def copyWebAssets = tasks.register('copyWebAssets', Sync) {
+    into genAssets.map { it.dir('www') }
+    from(new File(repoRoot, 'web'))
+    from(new File(repoRoot, 'version.json'))
+    from(new File(repoRoot, 'server')) {
+        include 'errors.mjs', 'places.mjs', 'demo.mjs', 'live.mjs', 'datagokr.mjs'
+        into 'js/providers'
+    }
+}
+def copyIcon = tasks.register('copyIcon', Copy) {
+    from(new File(repoRoot, 'web/icon-256.png')) { rename { 'ic_launcher.png' } }
+    into genRes.map { it.dir('mipmap-xxxhdpi') }
+}
+
+android {
+    namespace 'io.github.archenied.prototype'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'io.github.archenied.prototype'
+        minSdk 24
+        targetSdk 34
+        versionCode appVersionCode
+        versionName appVersion
+    }
+
+    signingConfigs {
+        // GitHub Actions가 비밀(Secrets)에서 꺼낸 서명 키. 없으면(내 PC 시험 빌드) 디버그 키로 서명한다.
+        release {
+            def ks = System.getenv('PROTO_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('PROTO_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('PROTO_KEY_ALIAS')
+                keyPassword System.getenv('PROTO_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig System.getenv('PROTO_KEYSTORE') ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs += genAssets
+            res.srcDirs += genRes
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.named('preBuild') { dependsOn copyWebAssets, copyIcon }
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+}

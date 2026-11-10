@@ -7,7 +7,7 @@ if not exist "%CSC%" (
   pause
   exit /b 1
 )
-"%CSC%" /nologo /target:winexe /codepage:65001 /optimize+ /out:Prototype.exe /win32icon:launcher\app.ico /r:System.Windows.Forms.dll /r:System.Management.dll launcher\Launcher.cs
+"%CSC%" /nologo /target:winexe /codepage:65001 /optimize+ /out:Prototype.exe /win32icon:launcher\app.ico /r:System.Windows.Forms.dll /r:System.Management.dll /r:System.Drawing.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll launcher\Launcher.cs
 if errorlevel 1 (
   echo ºôµå ½ÇÆÐ
   pause

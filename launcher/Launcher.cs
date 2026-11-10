@@ -3,6 +3,8 @@
 // 2) Microsoft Edge 앱 창(--app)으로 화면을 연다 (주소창 없는 일반 프로그램 창)
 // 3) 창을 닫으면 서버도 끈다
 // 이미 켜져 있으면 서버는 그대로 두고 창만 앞으로 가져온다.
+// Prototype.exe 하나만 있으면(옆에 server 폴더가 없으면) GitHub에서 앱 파일을 받아
+// %LOCALAPPDATA%\Prototype-TWT\app 에 설치하고 그곳의 Prototype.exe를 실행한다. 업데이트도 그곳에서 받는다.
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -24,15 +26,12 @@ static class Launcher
     static int Main(string[] args)
     {
         string dir = AppDomain.CurrentDomain.BaseDirectory;
+        string server = Path.Combine(dir, "server", "server.mjs");
+        // Prototype.exe 하나만 받아서 실행했으면 GitHub에서 앱을 받아 설치한 뒤 그쪽을 실행한다.
+        if (!File.Exists(server)) return Bootstrap.Run();
         Log(dir, "launcher start (pid " + Process.GetCurrentProcess().Id + ")");
         // 지난 업데이트 때 이름을 바꿔 둔 옛 실행 파일 정리
         try { string old = Path.Combine(dir, "Prototype.old.exe"); if (File.Exists(old)) File.Delete(old); } catch { }
-        string server = Path.Combine(dir, "server", "server.mjs");
-        if (!File.Exists(server))
-        {
-            Fail("server 폴더를 찾을 수 없어요.\n\nPrototype.exe는 prototype 폴더 안에 그대로 두고 실행해 주세요.");
-            return 1;
-        }
 
         string edge = FindEdge();
         if (edge == null)
@@ -218,8 +217,137 @@ static class Launcher
         catch { }
     }
 
-    static void Fail(string msg)
+    internal static void Fail(string msg)
     {
         MessageBox.Show(msg, "프로토타입", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+    }
+}
+
+// Prototype.exe 하나만 있을 때: GitHub에서 앱을 받아 설치하고 실행한다.
+static class Bootstrap
+{
+    const string ZipUrl = "https://github.com/Archenied/prototype/archive/refs/heads/main.zip";
+    static readonly bool Silent = Environment.GetEnvironmentVariable("PROTOTYPE_SILENT_INSTALL") == "1"; // 시험용: 창 없이 설치만
+    static string AppDir
+    {
+        get
+        {
+            string test = Environment.GetEnvironmentVariable("PROTOTYPE_APP_DIR"); // 시험용 설치 위치
+            if (!string.IsNullOrEmpty(test)) return test;
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Prototype-TWT", "app");
+        }
+    }
+
+    public static int Run()
+    {
+        string appExe = Path.Combine(AppDir, "Prototype.exe");
+        if (!File.Exists(Path.Combine(AppDir, "server", "server.mjs")) || !File.Exists(appExe))
+        {
+            if (!Install()) return 1;
+            if (Silent) return 0;
+            MakeShortcuts(appExe);
+        }
+        try
+        {
+            Process.Start(new ProcessStartInfo(appExe) { WorkingDirectory = AppDir, UseShellExecute = false });
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Launcher.Fail("앱을 실행하지 못했어요.\n\n" + ex.Message);
+            return 1;
+        }
+    }
+
+    // 작은 창에 '받는 중'을 보여 주면서 GitHub ZIP을 받아 푼다.
+    static bool Install()
+    {
+        if (Silent)
+        {
+            try { Download(); return true; } catch (Exception ex) { Console.Error.WriteLine(ex); return false; }
+        }
+        Exception error = null;
+        Application.EnableVisualStyles();
+        var form = new Form
+        {
+            Text = "프로토타입 설치",
+            ClientSize = new System.Drawing.Size(420, 96),
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterScreen,
+            MaximizeBox = false,
+            MinimizeBox = false,
+        };
+        try { form.Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
+        form.Controls.Add(new Label { Text = "처음 실행이라 GitHub에서 앱을 받고 있어요…", Left = 20, Top = 20, Width = 380, Height = 22 });
+        form.Controls.Add(new ProgressBar { Left = 20, Top = 52, Width = 380, Height = 18, Style = ProgressBarStyle.Marquee });
+        form.Shown += delegate
+        {
+            var t = new Thread(() =>
+            {
+                try { Download(); }
+                catch (Exception ex) { error = ex; }
+                try { form.BeginInvoke((MethodInvoker)form.Close); } catch { }
+            });
+            t.IsBackground = true;
+            t.Start();
+        };
+        Application.Run(form);
+        if (error != null)
+        {
+            Launcher.Fail("GitHub에서 앱을 받지 못했어요. 인터넷 연결을 확인하고 다시 실행해 주세요.\n\n" + error.Message);
+            return false;
+        }
+        return true;
+    }
+
+    static void Download()
+    {
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+        string root = Path.GetDirectoryName(AppDir);
+        Directory.CreateDirectory(root);
+        string zip = Path.Combine(root, "download.zip");
+        string tmp = Path.Combine(root, "download-tmp");
+        using (var wc = new WebClient())
+        {
+            wc.Headers[HttpRequestHeader.UserAgent] = "Prototype-Launcher";
+            wc.DownloadFile(ZipUrl, zip);
+        }
+        if (Directory.Exists(tmp)) Directory.Delete(tmp, true);
+        System.IO.Compression.ZipFile.ExtractToDirectory(zip, tmp);
+        // ZIP 안의 'prototype-main' 폴더 내용을 app 폴더로 옮긴다. (이미 있던 API_KEYS.bat·data는 그대로)
+        string top = Directory.GetDirectories(tmp)[0];
+        Directory.CreateDirectory(AppDir);
+        foreach (string f in Directory.GetFiles(top, "*", SearchOption.AllDirectories))
+        {
+            string rel = f.Substring(top.Length + 1);
+            string dest = Path.Combine(AppDir, rel);
+            if (rel.Equals("API_KEYS.bat", StringComparison.OrdinalIgnoreCase) && File.Exists(dest)) continue;
+            Directory.CreateDirectory(Path.GetDirectoryName(dest));
+            File.Copy(f, dest, true);
+        }
+        try { Directory.Delete(tmp, true); File.Delete(zip); } catch { }
+        if (!File.Exists(Path.Combine(AppDir, "server", "server.mjs"))) throw new Exception("받은 파일에 server 폴더가 없어요.");
+    }
+
+    // 바탕화면·시작 메뉴에 '프로토타입' 바로 가기 (설치된 앱을 바로 연다)
+    static void MakeShortcuts(string target)
+    {
+        try
+        {
+            Type t = Type.GetTypeFromProgID("WScript.Shell");
+            object shell = Activator.CreateInstance(t);
+            foreach (string folder in new[] {
+                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs") })
+            {
+                object lnk = t.InvokeMember("CreateShortcut", System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { Path.Combine(folder, "프로토타입.lnk") });
+                Type lt = lnk.GetType();
+                lt.InvokeMember("TargetPath", System.Reflection.BindingFlags.SetProperty, null, lnk, new object[] { target });
+                lt.InvokeMember("WorkingDirectory", System.Reflection.BindingFlags.SetProperty, null, lnk, new object[] { Path.GetDirectoryName(target) });
+                lt.InvokeMember("Description", System.Reflection.BindingFlags.SetProperty, null, lnk, new object[] { "프로토타입 - 시각·날씨·교통" });
+                lt.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, null, lnk, null);
+            }
+        }
+        catch { }
     }
 }

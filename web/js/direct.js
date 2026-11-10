@@ -3,6 +3,11 @@
 // API 키는 이 휴대폰(브라우저)에만 저장된다.
 
 export const DIRECT = !['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname);
+// Android 앱(휴대폰에 설치된 앱) 안에서 열렸으면 앱이 window.PrototypeNative를 넣어 준다.
+//  - 서울 버스(http만 있음)도 앱이 대신 받아 줘서 볼 수 있다
+//  - 인터넷 표준 시각(NTP), GitHub 새 버전 확인·설치를 앱이 해 준다
+export const NATIVE = typeof window !== 'undefined' && window.PrototypeNative ? window.PrototypeNative : null;
+const nativeJson = (fn, ...a) => { try { return JSON.parse(NATIVE[fn](...a)); } catch { return null; } };
 
 const KEYS_STORE = 'proto.keys.v1';
 export function getKeys() {
@@ -82,12 +87,14 @@ async function handle(url, init) {
   const str = (v) => { const s = String(v ?? '').trim(); if (!s || s.length > 80) throw new ApiError('badrequest'); return s; };
   try {
     if (p === '/api/health') return json(200, { app: 'prototype-twt', version: await appVersion(), direct: true });
+    if (p === '/api/time') return json(200, await timeNow());
     if (p === '/api/config') {
       const types = ['regions', 'places', 'weather', 'bus', 'subway', 'route', 'signal'];
-      return json(200, { version: await appVersion(), direct: true, modes: Object.fromEntries(types.map((t) => [t, providerOf(t, k) === 'demo' ? 'demo' : 'live'])), providers: Object.fromEntries(types.map((t) => [t, providerOf(t, k)])), platform: 'web' });
+      return json(200, { version: await appVersion(), direct: true, modes: Object.fromEntries(types.map((t) => [t, providerOf(t, k) === 'demo' ? 'demo' : 'live'])), providers: Object.fromEntries(types.map((t) => [t, providerOf(t, k)])), platform: NATIVE ? 'android' : 'web' });
     }
     if (p === '/api/net') return json(200, { online: navigator.onLine });
-    if (p === '/api/update') return json(200, { available: false, direct: true }); // 웹은 열 때마다 최신
+    if (p === '/api/update') return json(200, NATIVE ? (nativeJson('updateJson') || { available: false }) : { available: false, direct: true }); // 웹은 열 때마다 최신
+    if (p === '/api/update/apply' && NATIVE) return json(200, nativeJson('installUpdate') || { ok: false });
     if (p === '/api/metrics') return json(200, { ok: true, accepted: 0 }); // 모바일 웹은 지표를 모으지 않음
     if (p === '/api/feedback' || p.startsWith('/api/open-') || p.startsWith('/api/debug') || p === '/api/restart') throw new ApiError('service', 'mobile');
 
@@ -115,8 +122,8 @@ async function handle(url, init) {
         const term = str(q.get('q'));
         v = await cached('search', `${type}:${term}:${prov}`, () => {
           if (prov === 'demo') return demo.searchTransit(type, term);
-          // 서울 버스 API는 보안 연결(https)이 없어 휴대폰 브라우저에서 부를 수 없다 → 경기 버스만
-          if (type === 'bus') return dg.searchBusGg(k, term);
+          // 서울 버스 API는 보안 연결(https)이 없어 휴대폰 브라우저에서 부를 수 없다 → 경기 버스만 (Android 앱은 서울도)
+          if (type === 'bus') return NATIVE ? both(() => live.searchBus(k, term), () => dg.searchBusGg(k, term)) : dg.searchBusGg(k, term);
           if (type === 'subway') return dg.searchSubwayTago(k, term);
           return dg.searchSignalKlid(k, term);
         });
@@ -124,7 +131,10 @@ async function handle(url, init) {
         const lat = num(q.get('lat')), lon = num(q.get('lon'));
         v = await cached('search', `near:${type}:${lat},${lon}:${prov}`, () => {
           if (prov === 'demo') return demo.nearbyTransit(type, lat, lon);
-          if (type === 'bus') return dg.nearbyBusGg(k, lat, lon);
+          if (type === 'bus') {
+            if (!NATIVE) return dg.nearbyBusGg(k, lat, lon);
+            return both(() => live.nearbyBus(k, lat, lon), () => dg.nearbyBusGg(k, lat, lon)).then((l) => l.sort((a, b) => (a.distanceM ?? 9e9) - (b.distanceM ?? 9e9)).slice(0, 12));
+          }
           if (type === 'subway') return live.nearbySubway(lat, lon);
           return dg.nearbySignalKlid(k, lat, lon);
         });
@@ -135,8 +145,8 @@ async function handle(url, init) {
       const gg = q.get('gg');
       const id = str(gg || q.get('arsId'));
       const isLive = providerOf('bus', k) === 'live';
-      if (isLive && !gg) throw new ApiError('service', 'https'); // 서울 버스
-      return ok('bus', await cached('bus', (gg ? 'gg' : '') + id, () => (isLive ? dg.busGg(k, id) : demo.bus(id))));
+      if (isLive && !gg && !NATIVE) throw new ApiError('service', 'https'); // 서울 버스 (브라우저)
+      return ok('bus', await cached('bus', (gg ? 'gg' : '') + id, () => (!isLive ? demo.bus(id) : gg ? dg.busGg(k, id) : live.bus(k, id))));
     }
     if (p === '/api/transit/subway') {
       const st = str(q.get('station'));
@@ -164,6 +174,25 @@ async function handle(url, init) {
   }
 }
 
+// 인터넷 표준 시각. Android 앱: 앱이 잰 NTP 값. 웹: 이 사이트 서버가 보낸 Date 헤더 (1초 단위라 덜 정확).
+async function timeNow() {
+  if (NATIVE) {
+    for (let i = 0; i < 12; i++) {
+      const j = nativeJson('timeJson');
+      if (j && !j.pending) return j;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return { trueNow: Date.now(), source: 'device', precisionMs: 1e9 };
+  }
+  const t0 = Date.now();
+  const r = await realFetch('version.json?t=' + t0, { method: 'HEAD', cache: 'no-store' });
+  const t1 = Date.now();
+  const d = Date.parse(r.headers.get('Date') || '');
+  if (!Number.isFinite(d)) return { trueNow: Date.now(), source: 'device', precisionMs: 1e9 };
+  // Date 헤더는 초 단위(버림) → 그 초의 가운데로 본다. 응답 시간만큼 지난 시각으로 맞춘다.
+  return { trueNow: d + 500 + (Date.now() - t1), source: 'http-date', precisionMs: 600 + (t1 - t0) / 2 };
+}
+
 const realFetch = window.fetch.bind(window);
 export function installDirect() {
   if (!DIRECT) return;
@@ -171,6 +200,8 @@ export function installDirect() {
     const raw = typeof input === 'string' ? input : input.url;
     const url = new URL(raw, location.href);
     if (url.origin === location.origin && url.pathname.startsWith('/api/')) return handle(url, init);
+    // Android 앱: 보안 연결이 없는 http 주소(서울 버스 등)는 앱이 대신 받아 준다
+    if (NATIVE && url.protocol === 'http:') return realFetch(`${location.origin}/__proxy/http/${url.host}${url.pathname}${url.search}`, init);
     return realFetch(input, init);
   };
 }
