@@ -85,3 +85,11 @@ data.go.kr에서 활용신청할 서비스 (검색창에 이름을 넣고 → �
 - **언어**: 설정 → 화면 → 한국어 / English (장소 이름은 한국어 그대로)
 - **지역 바꾸기**: 홈 날씨 카드 오른쪽 위 "지역" 버튼
 - 갱신 표시는 "12초 전", "1분 5초 전"처럼 매초 바뀌어요.
+## GitHub · 다운로드 페이지 (2026-11-10)
+
+- 코드: https://github.com/Archenied/prototype (공개)
+- 다운로드 페이지: https://archenied.github.io/prototype/ — Windows ZIP, 모바일 웹(`/app/`), Android·iOS(준비 중)
+- **자동 업데이트는 GitHub를 봐요**: 앱이 1분마다 GitHub의 `version.json`을 확인하고, 더 새 버전이면 왼쪽 아래에 업데이트가 떠요. 누르면 바뀐 파일만 받아서(지문 확인) 서버를 다시 켜요. `API_KEYS.bat`·`data\`는 건드리지 않아요.
+- **새 버전 내기**: 고친 파일을 다 올린 뒤 마지막에 `version.json`의 버전을 올려서 push하면, 그때 모든 사용자에게 업데이트가 떠요.
+- GitHub에 올리지 않는 것: `API_KEYS.bat`(키), `data\`, 기획 문서(`docs\`, `HANDOFF.md`, `AGENTS.md` 등). 새로 받은 사람은 `API_KEYS.example.bat`이 자동으로 `API_KEYS.bat`으로 복사돼요.
+- 모바일 웹은 서버 없이 휴대폰 브라우저가 공공데이터포털을 직접 불러요. 키는 앱 설정 → API 키에 넣고 그 휴대폰에만 저장돼요. 서울 버스(보안 연결 미지원)·경로 시간·피드백은 Windows 버전에서만 돼요.

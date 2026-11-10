@@ -33,7 +33,7 @@ const HOST = '127.0.0.1';
 const VERSION_FILE = join(ROOT, 'version.json');
 function readRelease() {
   try {
-    const j = JSON.parse(readFileSync(VERSION_FILE, 'utf8'));
+    const j = JSON.parse(readFileSync(VERSION_FILE, 'utf8').replace(/^﻿/, '')); // 메모장이 붙이는 BOM 무시
     return { version: String(j.version || '0'), notes: Array.isArray(j.notes) ? j.notes.map(String).slice(0, 8) : [] };
   } catch {
     return { version: '0', notes: [] };

@@ -115,7 +115,7 @@ export async function downloadUpdate(root, log = () => {}) {
     }
   }
   rmSync(staging, { recursive: true, force: true });
-  const version = JSON.parse(readFileSync(join(root, 'version.json'), 'utf8')).version;
+  const version = JSON.parse(readFileSync(join(root, 'version.json'), 'utf8').replace(/^﻿/, '')).version;
   log(`update downloaded: ${version} (${changed.length} changed, ${removed.length} removed, commit ${sha.slice(0, 7)})`);
   void relative; void sep;
   return { version, changed, removed };
