@@ -323,6 +323,14 @@ a { color: var(--accent); }
 .wx-detail { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.8fr); gap: 14px; height: 100%; align-content: start; align-items: start; overflow-y: auto; overscroll-behavior: contain; }
 .wx-detail > .card:first-child { position: sticky; top: 0; }
 .wx-stat.wide { grid-column: 1 / -1; }
+.vtag { font-size: 10px; font-weight: 800; padding: 0 6px; border-radius: 999px; vertical-align: middle; white-space: nowrap; }
+.vtag.obs { color: var(--ok); background: var(--ok-soft); }
+.vtag.calc { color: var(--accent); background: var(--accent-soft); }
+.vtag.fc { color: var(--warn); background: var(--warn-soft); }
+.vtag.model { color: var(--text-2); background: var(--surface); border: 1px solid var(--border); }
+.vlegend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 8px; font-size: 12px; color: var(--text-3); }
+.vlegend .vtag { margin-left: 6px; }
+.vlegend .vtag:first-child { margin-left: 0; }
 /* ───────── 달력 ───────── */
 .clock-days { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; font-weight: 650; color: var(--accent); min-width: 0; }
 .clock-days .icon { flex: none; }

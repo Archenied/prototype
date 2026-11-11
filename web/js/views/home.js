@@ -11,7 +11,7 @@ import { go, config } from '../app.js';
 import { track } from '../metrics.js';
 import { t } from '../i18n.js';
 import { now as clockNow, nowDate } from '../clock.js';
-import { weatherMore, windText, keepOuterScroll } from './weather.js';
+import { weatherMore, windText, keepOuterScroll, vtag, observedOf, feelsFrom } from './weather.js';
 import { calendarPanel, todayLine } from './calendar.js';
 
 const TYPE_NAME = { bus: '버스', subway: '지하철', route: '경로', signal: '신호등' };
@@ -585,6 +585,7 @@ function weatherDetail() {
   const d = v.data;
   const vd = view(detailKey(region));
   const n = vd.data?.now;
+  const obs = observedOf(v); // 기상청 실측값 (데모면 null)
   return keepOuterScroll(h(
     'div.wx-detail',
     h(
@@ -594,13 +595,13 @@ function weatherDetail() {
       h('div.wx-hero', { style: { marginTop: '10px' } }, weatherIcon(d.code), h('div', h('div.wx-temp', `${Math.round(d.temp)}°`), h('div.wx-cond', { style: { fontSize: '18px' } }, d.text))),
       h(
         'div.wx-stats',
-        h('div.wx-stat', h('div.k', '강수확률'), h('div.v', d.pop != null ? `${d.pop}%` : '—')),
-        h('div.wx-stat', h('div.k', '습도 (공기 속 물기)'), h('div.v', `${d.humidity}%`)),
-        h('div.wx-stat', h('div.k', '바람'), h('div.v', `${d.wind}m/s`)),
-        h('div.wx-stat', h('div.k', '1시간 강수'), h('div.v', d.rain1h ? `${d.rain1h}mm` : '없음')),
-        n ? h('div.wx-stat', h('div.k', '체감온도'), h('div.v', `${Math.round(n.feels)}°`)) : null,
-        n ? h('div.wx-stat', h('div.k', '기압'), h('div.v', `${Math.round(n.pres)} hPa`)) : null,
-        n ? h('div.wx-stat.wide', h('div.k', '바람 방향'), h('div.v', windText(n.windDir))) : null,
+        h('div.wx-stat', h('div.k', '강수확률', ' ', obs ? vtag('fc') : null), h('div.v', d.pop != null ? `${d.pop}%` : '—')),
+        h('div.wx-stat', h('div.k', '습도 (공기 속 물기)', ' ', obs ? vtag('obs') : null), h('div.v', `${d.humidity}%`)),
+        h('div.wx-stat', h('div.k', '바람', ' ', obs ? vtag('obs') : null), h('div.v', `${d.wind}m/s`)),
+        h('div.wx-stat', h('div.k', '1시간 강수', ' ', obs ? vtag('obs') : null), h('div.v', d.rain1h ? `${d.rain1h}mm` : '없음')),
+        obs ? h('div.wx-stat', h('div.k', '체감온도', ' ', vtag('calc')), h('div.v', `${Math.round(feelsFrom(obs, clockNow()))}°`)) : n ? h('div.wx-stat', h('div.k', '체감온도', ' ', vtag('model')), h('div.v', `${Math.round(n.feels)}°`)) : null,
+        n ? h('div.wx-stat', h('div.k', '기압', ' ', vtag('model')), h('div.v', `${Math.round(n.pres)} hPa`)) : null,
+        (obs?.windDir ?? n?.windDir) != null ? h('div.wx-stat.wide', h('div.k', '바람 방향', ' ', vtag(obs?.windDir != null ? 'obs' : 'model')), h('div.v', windText(obs?.windDir ?? n.windDir, obs ? obs.wind : n?.wind))) : null,
       ),
       d.code === 'rain' || d.code === 'sleet' || d.code === 'snow' || d.hourly?.some((x) => x.code === 'rain' || x.code === 'snow' || x.code === 'sleet')
         ? h('div.notice.warn', { style: { marginTop: '12px' } }, icon('umbrella'), '비나 눈 소식이 있어요. 우산을 챙기세요.')
@@ -608,7 +609,7 @@ function weatherDetail() {
       errorNotice(key, v),
       meta(v),
     ),
-    weatherMore(vd, meta(vd)),
+    weatherMore(vd, meta(vd), obs),
   ));
 }
 

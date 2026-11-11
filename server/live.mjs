@@ -207,6 +207,7 @@ export async function weather(keys, lat, lon) {
     pop: popNow,
     humidity: Number(obs.REH),
     wind: Number(obs.WSD),
+    windDir: obs.VEC !== undefined && obs.VEC !== '' && Number.isFinite(Number(obs.VEC)) ? Number(obs.VEC) : null, // 실측 풍향 (불어오는 쪽, 도)
     rain1h: Number.isFinite(rn) ? rn : 0,
     hourly,
     observedAt: Date.UTC(+y.slice(0, 4), +y.slice(4, 6) - 1, +y.slice(6, 8), +hh - 9, 0),

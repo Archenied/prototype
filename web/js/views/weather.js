@@ -34,8 +34,9 @@ export function dirName(deg) {
   return isEn() ? DIR_EN[i] : DIR_KO[i];
 }
 // 바람은 '불어오는 쪽'으로 이름을 붙인다 (북서풍 = 북서쪽에서 남동쪽으로)
-export function windText(deg) {
+export function windText(deg, speed) {
   if (deg == null) return dash;
+  if (speed != null && speed < 0.5) return L('바람이 거의 없어요 (방향 없음)', 'Almost calm (no direction)');
   const from = dirName(deg), to = dirName(deg + 180);
   return isEn() ? `${from} wind (${from} → ${to})` : `${from}풍 (${from} → ${to})`;
 }
@@ -117,29 +118,88 @@ function wxIcon(code, cls = 'wx-icon') {
 }
 
 /* ───────── 화면 조각 ───────── */
-function stat(k, v, sub) {
-  return h('div.wx-stat', h('div.k', k), h('div.v', v ?? dash), sub ? h('div.s', sub) : null);
+// 값마다 어디서 온 값인지 꼬리표를 붙인다.
+//  실측 = 기상청 관측소가 실제로 잰 값 · 예보 = 기상청 예보 · 계산 = 실측값(또는 천문)으로 공식에 넣어 구한 값 · 모델 = 컴퓨터 모델(Open-Meteo) 추정
+export function vtag(kind) {
+  const T = {
+    obs: [L('실측', 'Measured'), L('기상청 관측소가 실제로 잰 값', 'Actually measured at the KMA station')],
+    fc: [L('예보', 'Forecast'), L('기상청 단기예보 값', 'KMA short-range forecast')],
+    calc: [L('계산', 'Calculated'), L('실측값(또는 천문 계산)을 공식에 넣어 구한 값', 'Worked out by a formula from measured values (or astronomy)')],
+    model: [L('모델', 'Model'), L('컴퓨터 날씨 모델(Open-Meteo)이 추정한 값 · 실제로 잰 값이 아니에요', 'Estimated by a computer weather model (Open-Meteo), not measured')],
+  }[kind];
+  return h(`span.vtag.${kind}`, { title: T[1] }, T[0]);
 }
 
-// 고른 시간(또는 지금)의 모든 값
-function allValues(x, title) {
+function stat(k, v, sub, kind = 'model') {
+  return h('div.wx-stat', h('div.k', k, ' ', vtag(kind)), h('div.v', v ?? dash), sub ? h('div.s', sub) : null);
+}
+
+// 기상청 실측값 (홈 왼쪽 카드와 같은 값). 데모 데이터면 null.
+export function observedOf(v) {
+  const d = v?.data;
+  if (!d || v.mode === 'demo' || !Number.isFinite(d.temp)) return null;
+  return { temp: d.temp, humidity: Number.isFinite(d.humidity) ? d.humidity : null, wind: Number.isFinite(d.wind) ? d.wind : 0, windDir: d.windDir ?? null, rain1h: d.rain1h || 0, at: d.observedAt };
+}
+
+// 체감온도: 기상청 공식. 10°C 이하이고 바람 4.68km/h(1.3m/s) 이상이면 겨울(바람 체감), 5~9월이면 여름(습도 체감), 그 밖에는 기온 그대로.
+export function feelsFrom(o, nowMs) {
+  const T = o.temp, RH = o.humidity, kmh = (o.wind || 0) * 3.6;
+  const month = new Date(nowMs + 9 * 3600e3).getUTCMonth() + 1;
+  if (T <= 10 && kmh >= 4.68) {
+    const p = Math.pow(kmh, 0.16);
+    return 13.12 + 0.6215 * T - 11.37 * p + 0.3965 * T * p;
+  }
+  if (month >= 5 && month <= 9 && RH != null) {
+    const Tw = T * Math.atan(0.151977 * Math.sqrt(RH + 8.313659)) + Math.atan(T + RH) - Math.atan(RH - 1.67633) + 0.00391838 * Math.pow(RH, 1.5) * Math.atan(0.023101 * RH) - 4.686035;
+    return -0.2442 + 0.55399 * Tw + 0.45535 * T - 0.0022 * Tw * Tw + 0.00278 * Tw * T + 3.0;
+  }
+  return T;
+}
+// 이슬점 (Magnus 공식): 실측 기온·습도로 구한다
+export function dewFrom(T, RH) {
+  if (T == null || !RH) return null;
+  const g = Math.log(RH / 100) + (17.62 * T) / (243.12 + T);
+  return (243.12 * g) / (17.62 - g);
+}
+
+// 고른 시간(또는 지금)의 모든 값. obs가 있으면 '지금'은 실제로 잰 값을 먼저 보여 주고, 모델 값은 작게 옆에 둔다.
+function allValues(x, title, obs) {
   const unit = (v, u) => (v == null ? dash : `${v}${u}`);
+  const mdl = (v, u) => (v == null ? '' : L(`모델 ${v}${u}`, `model ${v}${u}`));
+  const join = (...a) => a.filter(Boolean).join(' · ');
+  const feelsObs = obs ? feelsFrom(obs, clockNow()) : null;
+  const dewObs = obs ? dewFrom(obs.temp, obs.humidity) : null;
+  const wDir = obs && obs.windDir != null ? obs.windDir : x.windDir;
+  const wSpd = obs ? obs.wind : x.wind;
   return h(
     'section.card',
     { 'aria-label': title },
     h('div.card-title', icon('info', 'icon-sm'), h('span.grow', title)),
+    h('div.vlegend',
+      vtag('obs'), L('기상청이 실제로 잰 값', 'measured'),
+      vtag('calc'), L('실측값으로 구한 값', 'from measured values'),
+      vtag('fc'), L('기상청 예보', 'KMA forecast'),
+      vtag('model'), L('컴퓨터 모델 추정', 'computer-model estimate')),
     h(
       'div.wx-all',
-      stat(L('기온', 'Temperature'), unit(r1(x.temp), '°')),
-      stat(L('체감온도', 'Feels like'), unit(r1(x.feels), '°'), x.feels != null && x.temp != null ? (x.feels < x.temp - 1 ? L('바람 때문에 더 추워요', 'Wind makes it colder') : x.feels > x.temp + 1 ? L('습해서 더 더워요', 'Humidity makes it warmer') : L('기온과 비슷해요', 'About the same')) : null),
+      obs ? stat(L('기온', 'Temperature'), `${r1(obs.temp)}°`, mdl(r1(x.temp), '°'), 'obs') : stat(L('기온', 'Temperature'), unit(r1(x.temp), '°')),
+      obs
+        ? stat(L('체감온도', 'Feels like'), `${r1(feelsObs)}°`, join(L('실측 기온·습도·바람으로 계산 (기상청 공식)', 'From measured temperature, humidity and wind (KMA formula)'), mdl(r1(x.feels), '°')), 'calc')
+        : stat(L('체감온도', 'Feels like'), unit(r1(x.feels), '°'), x.feels != null && x.temp != null ? (x.feels < x.temp - 1 ? L('바람 때문에 더 추워요', 'Wind makes it colder') : x.feels > x.temp + 1 ? L('습해서 더 더워요', 'Humidity makes it warmer') : L('기온과 비슷해요', 'About the same')) : null),
       stat(L('강수확률 (비·눈)', 'Chance of rain/snow'), unit(r0(x.pop), '%')),
-      stat(L('강수량', 'Precipitation'), x.prcp ? `${r1(x.prcp)}mm` : L('없음', 'None'), x.prcp ? `${L('비', 'Rain')} ${r1(x.rain)} · ${L('소나기', 'Showers')} ${r1(x.showers)}mm` : null),
+      obs
+        ? stat(L('1시간 강수량', 'Rain, last hour'), obs.rain1h ? `${obs.rain1h}mm` : L('없음', 'None'), x.prcp ? mdl(`${r1(x.prcp)}`, 'mm') : null, 'obs')
+        : stat(L('강수량', 'Precipitation'), x.prcp ? `${r1(x.prcp)}mm` : L('없음', 'None'), x.prcp ? `${L('비', 'Rain')} ${r1(x.rain)} · ${L('소나기', 'Showers')} ${r1(x.showers)}mm` : null),
       stat(L('눈 (새로 쌓임)', 'Snowfall'), x.snow ? `${r1(x.snow)}cm` : L('없음', 'None'), x.snowDepth ? `${L('쌓인 눈', 'Snow depth')} ${r1(x.snowDepth)}cm` : null),
-      stat(L('습도', 'Humidity'), unit(r0(x.hum), '%')),
-      stat(L('이슬점', 'Dew point'), unit(r1(x.dew), '°'), L('이 온도까지 내려가면 이슬·안개가 생겨요', 'Dew/fog forms at this temperature')),
+      obs && obs.humidity != null
+        ? stat(L('습도', 'Humidity'), `${r0(obs.humidity)}%`, mdl(r0(x.hum), '%'), 'obs')
+        : stat(L('습도', 'Humidity'), unit(r0(x.hum), '%')),
+      obs && dewObs != null
+        ? stat(L('이슬점', 'Dew point'), `${r1(dewObs)}°`, join(L('실측 기온·습도로 계산 · 이 온도까지 내려가면 이슬·안개가 생겨요', 'From measured temperature and humidity · dew/fog forms at this temperature'), mdl(r1(x.dew), '°')), 'calc')
+        : stat(L('이슬점', 'Dew point'), unit(r1(x.dew), '°'), L('이 온도까지 내려가면 이슬·안개가 생겨요', 'Dew/fog forms at this temperature')),
       stat(L('기압 (해면)', 'Air pressure (sea level)'), x.pres != null ? `${r1(x.pres)} hPa` : dash, presText(x.pres, x.presTrend)),
       stat(L('기압 (지표)', 'Air pressure (surface)'), x.presSfc != null ? `${r1(x.presSfc)} hPa` : dash),
-      h('div.wx-stat', h('div.k', L('바람', 'Wind')), h('div.v.row', arrow(x.windDir), `${r1(x.wind) ?? dash}m/s`), h('div.s', `${windText(x.windDir)} · ${beaufort(x.wind)}`)),
+      h('div.wx-stat', h('div.k', L('바람', 'Wind'), ' ', vtag(obs ? 'obs' : 'model')), h('div.v.row', wSpd != null && wSpd < 0.5 ? null : arrow(wDir), `${r1(wSpd) ?? dash}m/s`), h('div.s', join(`${windText(wDir, wSpd)} · ${beaufort(wSpd)}`, obs ? mdl(r1(x.wind), 'm/s') : ''))),
       stat(L('돌풍 (순간 최대)', 'Gusts'), unit(r1(x.gust), 'm/s')),
       stat(L('구름 양', 'Cloud cover'), unit(r0(x.cloud), '%'), `${L('낮은', 'Low')} ${r0(x.cloudLow) ?? dash}% · ${L('중간', 'Mid')} ${r0(x.cloudMid) ?? dash}% · ${L('높은', 'High')} ${r0(x.cloudHigh) ?? dash}%`),
       stat(L('안개·시정 (보이는 거리)', 'Fog & visibility'), fogLevel(x), visText(x.vis)),
@@ -147,7 +207,7 @@ function allValues(x, title) {
       stat(L('햇빛 든 시간', 'Sunshine'), x.sun != null ? L(`${Math.round(x.sun / 60)}분 / 60분`, `${Math.round(x.sun / 60)} of 60 min`) : dash),
       stat(L('어는 높이', 'Freezing level'), x.freezing != null ? `${Math.round(x.freezing).toLocaleString()}m` : dash, L('이보다 높은 하늘은 0°C 아래예요', 'Air above this is below 0°C')),
       stat(L('뇌우 에너지 (CAPE)', 'Storm energy (CAPE)'), x.cape != null ? `${Math.round(x.cape)} J/kg` : dash, L(`천둥·번개 가능성 ${capeText(x.cape)}`, `Thunderstorm potential: ${capeText(x.cape)}`)),
-      stat(L('낮/밤', 'Day/night'), x.isDay ? L('낮', 'Day') : L('밤', 'Night')),
+      stat(L('낮/밤', 'Day/night'), x.isDay ? L('낮', 'Day') : L('밤', 'Night'), null, 'calc'),
     ),
   );
 }
@@ -224,16 +284,16 @@ function airCard(air, today, nowMs) {
       air ? stat(L('황사·먼지', 'Dust'), air.dust != null ? `${Math.round(air.dust)} ㎍/㎥` : dash) : null,
       air ? stat(L('대기 탁도 (AOD)', 'Haze (AOD)'), air.aod != null ? `${r1(air.aod * 10) / 10}` : dash, L('높을수록 하늘이 뿌얘요', 'Higher = hazier sky')) : null,
       !air ? stat(L('대기질', 'Air quality'), L('정보 없음', 'Not available')) : null,
-      today ? stat(L('해 뜨는 시각', 'Sunrise'), fmtHM(today.sunrise)) : null,
-      today ? stat(L('해 지는 시각', 'Sunset'), fmtHM(today.sunset)) : null,
-      today ? stat(L('낮 길이', 'Daylight'), hm(today.daylight), `${L('햇빛', 'Sunshine')} ${hm(today.sunshine)}`) : null,
-      stat(L('달', 'Moon'), m.name, L(`월령 ${m.age}일 · 밝은 부분 ${m.lit}%`, `Age ${m.age} days · ${m.lit}% lit`)),
+      today ? stat(L('해 뜨는 시각', 'Sunrise'), fmtHM(today.sunrise), null, 'calc') : null,
+      today ? stat(L('해 지는 시각', 'Sunset'), fmtHM(today.sunset), null, 'calc') : null,
+      today ? stat(L('낮 길이', 'Daylight'), hm(today.daylight), `${L('햇빛', 'Sunshine')} ${hm(today.sunshine)}`, 'calc') : null,
+      stat(L('달', 'Moon'), m.name, L(`월령 ${m.age}일 · 밝은 부분 ${m.lit}%`, `Age ${m.age} days · ${m.lit}% lit`), 'calc'),
     ),
   );
 }
 
 /** 날씨 탭 아래쪽에 붙는 자세한 날씨. v = view('wxd:…') */
-export function weatherMore(v, metaEl) {
+export function weatherMore(v, metaEl, obs = null) {
   const wrap = h('div.wx-more');
   if (!v.data) {
     wrap.append(h('section.card', h('div.card-title', icon('clock', 'icon-sm'), L('7일 · 자세한 날씨', '7 days · details')),
@@ -256,10 +316,10 @@ export function weatherMore(v, metaEl) {
   const showDetail = () => {
     const x = (ui.sel != null && d.hours.find((y) => y.t === ui.sel)) || null;
     if (!x || x.t <= nowMs) {
-      swap(detailSlot, allValues({ ...d.now }, L('지금 날씨 · 모든 값 (기상 모델 값이라 왼쪽 기상청 관측과 조금 다를 수 있어요)', 'Right now · all values (model values, may differ a little from KMA observation)')));
+      swap(detailSlot, allValues({ ...d.now }, L('지금 날씨 · 모든 값', 'Right now · all values'), obs));
     } else {
       const k = kstDate(x.t);
-      swap(detailSlot, allValues(x, L(`${dayLabel(x.t, nowMs)} ${md(x.t)} ${k.getUTCHours()}시 · 모든 값`, `${dayLabel(x.t, nowMs)} ${md(x.t)} ${k.getUTCHours()}:00 · all values`)));
+      swap(detailSlot, allValues(x, L(`${dayLabel(x.t, nowMs)} ${md(x.t)} ${k.getUTCHours()}시 · 모든 값 (예보)`, `${dayLabel(x.t, nowMs)} ${md(x.t)} ${k.getUTCHours()}:00 · all values (forecast)`)));
     }
   };
   strip = hourStrip(d.hours, nowMs, pick);
