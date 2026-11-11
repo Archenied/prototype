@@ -42,12 +42,12 @@ function entry({ iconName, title, desc, value, badge, onClick, fkey }) {
 const count = (n) => (n ? `${n}개` : '없음');
 
 const KEY_ROWS = [
-  { type: 'weather', title: '날씨', key: 'DATA_GO_KR_KEY' },
-  { type: 'bus', title: '버스 도착 (서울·경기)', key: 'DATA_GO_KR_KEY' },
-  { type: 'subway', title: '지하철 도착·운행', key: 'DATA_GO_KR_KEY (시간표) · 실시간은 SEOUL_OPENAPI_KEY (선택)' },
+  { type: 'weather', title: '날씨', key: '날씨 줄 · 기상청_단기예보 조회서비스' },
+  { type: 'bus', title: '버스 도착 (서울·경기)', key: '서울 버스 · 경기 버스 · 경기 정류장 줄' },
+  { type: 'subway', title: '지하철 도착·운행', key: '지하철 줄 (시간표) · 실시간은 SEOUL_OPENAPI_KEY (선택)' },
   { type: 'route', title: '경로 소요 시간', key: 'ODSAY_KEY (선택 · 없으면 데모)' },
-  { type: 'signal', title: '신호등', key: 'DATA_GO_KR_KEY · 서울은 TDATA_KEY (선택)' },
-  { type: 'regions', title: '지역·장소 검색', key: 'KAKAO_REST_KEY' },
+  { type: 'signal', title: '신호등', key: '신호등 줄 · 서울은 TDATA_KEY (선택)' },
+  { type: 'regions', title: '지역·장소 검색', key: '카카오 줄 (선택)' },
 ];
 const PROVIDER_TAG = { realtime: ['ok', '실시간'], schedule: ['warn', '시간표 기준'], tdata: ['ok', '실제 데이터'], datagokr: ['ok', '공공데이터포털'], live: ['ok', '실제 데이터'], demo: ['warn', '데모 데이터'] };
 

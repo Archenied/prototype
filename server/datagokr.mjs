@@ -1,4 +1,4 @@
-// 공공데이터포털(data.go.kr) 키 하나(DATA_GO_KR_KEY)로 쓰는 추가 공급자
+// 공공데이터포털(data.go.kr) 키로 쓰는 추가 공급자 (서비스마다 API_KEYS.bat의 자기 줄 키를 쓰고, 비어 있으면 일반 키)
 // - 경기도 버스 도착·정류소 (경기도_버스도착정보 / 정류소 조회 v2)
 // - 지하철 시간표 (국토교통부_(TAGO)_지하철정보) : 실시간이 아님, 화면에 '시간표 기준' 표시
 // - 신호등 (행정안전부 한국지역정보개발원_교통안전 신호등 실시간 정보)
@@ -89,18 +89,18 @@ function ggStop(s) {
 }
 
 export async function searchBusGg(keys, q) {
-  const j = await fetchJSON(`${GG}/busstationservice/v2/getBusStationListv2?serviceKey=${dataGoKey(keys.DATA_GO_KR_KEY)}&keyword=${encodeURIComponent(q)}&format=json`);
+  const j = await fetchJSON(`${GG}/busstationservice/v2/getBusStationListv2?serviceKey=${dataGoKey(keys.STOP_GG_KEY || keys.DATA_GO_KR_KEY)}&keyword=${encodeURIComponent(q)}&format=json`);
   return asList(ggBody(j)?.busStationList).slice(0, 20).map(ggStop);
 }
 
 export async function nearbyBusGg(keys, lat, lon) {
-  const j = await fetchJSON(`${GG}/busstationservice/v2/getBusStationAroundListv2?serviceKey=${dataGoKey(keys.DATA_GO_KR_KEY)}&x=${lon}&y=${lat}&format=json`);
+  const j = await fetchJSON(`${GG}/busstationservice/v2/getBusStationAroundListv2?serviceKey=${dataGoKey(keys.STOP_GG_KEY || keys.DATA_GO_KR_KEY)}&x=${lon}&y=${lat}&format=json`);
   const b = ggBody(j);
   return asList(b?.busStationAroundList || b?.busStationList).slice(0, 10).map(ggStop);
 }
 
 export async function busGg(keys, stationId) {
-  const j = await fetchJSON(`${GG}/busarrivalservice/v2/getBusArrivalListv2?serviceKey=${dataGoKey(keys.DATA_GO_KR_KEY)}&stationId=${encodeURIComponent(stationId)}&format=json`);
+  const j = await fetchJSON(`${GG}/busarrivalservice/v2/getBusArrivalListv2?serviceKey=${dataGoKey(keys.BUS_GG_KEY || keys.DATA_GO_KR_KEY)}&stationId=${encodeURIComponent(stationId)}&format=json`);
   const b = ggBody(j);
   const now = Date.now();
   const arrivals = [];
@@ -131,7 +131,7 @@ export async function tagoStations(keys, name) {
   const n = String(name).trim().replace(/역$/, '');
   const hit = idCache.get(n);
   if (hit && Date.now() - hit.at < 86400e3) return hit.list;
-  const j = await fetchJSON(`${TAGO}/GetKwrdFndSubwaySttnList?serviceKey=${dataGoKey(keys.DATA_GO_KR_KEY)}&subwayStationName=${encodeURIComponent(n)}&numOfRows=100&pageNo=1&_type=json`);
+  const j = await fetchJSON(`${TAGO}/GetKwrdFndSubwaySttnList?serviceKey=${dataGoKey(keys.SUBWAY_TAGO_KEY || keys.DATA_GO_KR_KEY)}&subwayStationName=${encodeURIComponent(n)}&numOfRows=100&pageNo=1&_type=json`);
   let list = [];
   try {
     checkHeader(j);
@@ -152,7 +152,7 @@ async function schedule(keys, id, dayCode, ud) {
   const ck = `${id}|${dayCode}|${ud}`;
   const hit = schedCache.get(ck);
   if (hit && Date.now() - hit.at < 6 * 3600e3) return hit.rows;
-  const j = await fetchJSON(`${TAGO}/GetSubwaySttnAcctoSchdulList?serviceKey=${dataGoKey(keys.DATA_GO_KR_KEY)}&subwayStationId=${encodeURIComponent(id)}&dailyTypeCode=${dayCode}&upDownTypeCode=${ud}&numOfRows=700&pageNo=1&_type=json`);
+  const j = await fetchJSON(`${TAGO}/GetSubwaySttnAcctoSchdulList?serviceKey=${dataGoKey(keys.SUBWAY_TAGO_KEY || keys.DATA_GO_KR_KEY)}&subwayStationId=${encodeURIComponent(id)}&dailyTypeCode=${dayCode}&upDownTypeCode=${ud}&numOfRows=700&pageNo=1&_type=json`);
   let rows = [];
   try {
     checkHeader(j);
@@ -217,7 +217,7 @@ const liveCache = new Map(); // stdgCd → {at, map}
 async function klidAll(keys, op, stdgCd) {
   const out = [];
   for (let page = 1; page <= 10; page++) {
-    const j = await fetchJSON(`${KLID}/${op}?serviceKey=${dataGoKey(keys.DATA_GO_KR_KEY)}&type=json&pageNo=${page}&numOfRows=1000&stdgCd=${stdgCd}`);
+    const j = await fetchJSON(`${KLID}/${op}?serviceKey=${dataGoKey(keys.SIGNAL_KLID_KEY || keys.DATA_GO_KR_KEY)}&type=json&pageNo=${page}&numOfRows=1000&stdgCd=${stdgCd}`);
     try {
       checkHeader(j);
     } catch (e) {

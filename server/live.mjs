@@ -165,7 +165,7 @@ async function vilagePop(key, nx, ny, now) {
 
 export async function weather(keys, lat, lon) {
   const { nx, ny } = toGrid(lat, lon);
-  const key = dataGoKey(keys.DATA_GO_KR_KEY);
+  const key = dataGoKey(keys.WEATHER_KEY || keys.DATA_GO_KR_KEY);
   const base = 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0';
   const now = Date.now();
   const nb = ncstBase(now);
@@ -230,7 +230,7 @@ function seoulBusItems(j) {
 const BUS_BASE = 'http://ws.bus.go.kr/api/rest/stationinfo';
 
 export async function searchBus(keys, q) {
-  const j = await fetchJSON(`${BUS_BASE}/getStationByName?serviceKey=${dataGoKey(keys.DATA_GO_KR_KEY)}&stSrch=${encodeURIComponent(q)}&resultType=json`);
+  const j = await fetchJSON(`${BUS_BASE}/getStationByName?serviceKey=${dataGoKey(keys.BUS_SEOUL_KEY || keys.DATA_GO_KR_KEY)}&stSrch=${encodeURIComponent(q)}&resultType=json`);
   // 정류소 번호가 없는(0) 곳은 미정차 정류장이라 도착 정보를 조회할 수 없어서 뺀다.
   const items = (seoulBusItems(j) || []).filter((s) => s.arsId && String(s.arsId) !== '0');
   return items.slice(0, 20).map((s) => ({
@@ -240,7 +240,7 @@ export async function searchBus(keys, q) {
 }
 
 export async function nearbyBus(keys, lat, lon) {
-  const j = await fetchJSON(`${BUS_BASE}/getStationByPos?serviceKey=${dataGoKey(keys.DATA_GO_KR_KEY)}&tmX=${lon}&tmY=${lat}&radius=600&resultType=json`);
+  const j = await fetchJSON(`${BUS_BASE}/getStationByPos?serviceKey=${dataGoKey(keys.BUS_SEOUL_KEY || keys.DATA_GO_KR_KEY)}&tmX=${lon}&tmY=${lat}&radius=600&resultType=json`);
   const items = seoulBusItems(j) || [];
   return items.slice(0, 10).map((s) => ({
     type: 'bus', id: 'bus:' + s.arsId, name: s.stationNm, sub: `정류소 ${s.arsId}`,
@@ -259,7 +259,7 @@ function parseArrMsg(msg = '', now) {
 }
 
 export async function bus(keys, arsId) {
-  const j = await fetchJSON(`${BUS_BASE}/getStationByUid?serviceKey=${dataGoKey(keys.DATA_GO_KR_KEY)}&arsId=${encodeURIComponent(arsId)}&resultType=json`);
+  const j = await fetchJSON(`${BUS_BASE}/getStationByUid?serviceKey=${dataGoKey(keys.BUS_SEOUL_KEY || keys.DATA_GO_KR_KEY)}&arsId=${encodeURIComponent(arsId)}&resultType=json`);
   const items = seoulBusItems(j);
   if (items === null) throw new ApiError('notfound');
   const now = Date.now();
