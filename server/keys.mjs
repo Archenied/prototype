@@ -20,7 +20,8 @@ export const SERVICES = [
   { id: 'STOP_GG_KEY', short: '경기 정류장', label: '경기도_정류소 조회', site: 'data.go.kr', match: ['경기정류', '경기도정류'] },
   { id: 'BUS_GG_KEY', short: '경기 버스', label: '경기도_버스도착정보 조회', site: 'data.go.kr', match: ['경기버스', '경기도버스'] },
   { id: 'BUS_SEOUL_KEY', short: '서울 버스', label: '서울특별시_정류소정보조회 서비스', site: 'data.go.kr', match: ['서울버스', '서울시버스', '서울특별시정류', '서울특별시버스', '서울정류'] },
-  { id: 'SUBWAY_TAGO_KEY', short: '지하철', label: '국토교통부_(TAGO)_지하철정보', site: 'data.go.kr', match: ['지하철', 'tago'] },
+  { id: 'BUS_TAGO_KEY', short: '버스', label: '국토교통부_(TAGO)_버스도착정보 · 버스정류소정보', site: 'data.go.kr', match: ['버스'] },
+  { id: 'SUBWAY_TAGO_KEY', short: '지하철', label: '국토교통부_(TAGO)_지하철정보', site: 'data.go.kr', match: ['지하철'] },
   { id: 'SIGNAL_KLID_KEY', short: '신호등', label: '행정안전부 한국지역정보개발원_(전국 통합데이터) 교통안전 신호등 실시간 정보', site: 'data.go.kr', match: ['신호등', '교통안전', '한국지역정보개발원'] },
   { id: 'KAKAO_REST_KEY', short: '카카오', label: '카카오 REST API 키', site: 'developers.kakao.com', match: ['카카오', 'kakao'] },
 ];
@@ -49,7 +50,7 @@ function decode(buf) {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf).replace(/^﻿/, ''); } catch { return new TextDecoder('euc-kr').decode(buf); }
 }
 
-const SKIP = /^\s*(rem\b|::|@|echo\b|if\b|start\b|exit\b|goto\b)/i;
+const SKIP = /^\s*(rem\b|::|@|echo\b|if\b|start\b|exit\b|goto\b|powershell\b|chcp\b)/i;
 let cached = { file: '', mtime: -1, keys: {} };
 
 export function parseKeys(text) {
@@ -69,6 +70,8 @@ export function parseKeys(text) {
     const v = cleanKey(m[2]);
     if (id && v) keys[id] = v;
   }
+  // '버스' 한 줄이 서울·경기 버스 서비스의 키도 된다 (그 줄이 따로 있으면 그 줄이 우선).
+  for (const id of ['BUS_SEOUL_KEY', 'BUS_GG_KEY', 'STOP_GG_KEY']) if (!keys[id] && keys.BUS_TAGO_KEY) keys[id] = keys.BUS_TAGO_KEY;
   // 빈 서비스 줄은 채워진 다른 data.go.kr 키로 메운다. DATA_GO_KR_KEY = "키가 하나라도 있다"는 표시이기도 하다.
   const general = keys.DATA_GO_KR_KEY || PORTAL_IDS.map((id) => keys[id]).find(Boolean);
   if (general) {

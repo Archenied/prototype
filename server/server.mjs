@@ -252,6 +252,7 @@ async function api(req, res, url) {
   if (p === '/api/config') {
     return send(res, 200, {
       version: VERSION,
+      keysFile: join(ROOT, 'API_KEYS.bat'),
       modes: Object.fromEntries(Object.keys(NEED_KEY).map((t) => [t, modeOf(t, keys)])),
       providers: Object.fromEntries(Object.keys(NEED_KEY).map((t) => [t, providerOf(t, keys)])),
       sources: Object.fromEntries(Object.keys(LIVE_SOURCE).map((t) => [t, sourceOf(t, keys)])),

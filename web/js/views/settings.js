@@ -87,7 +87,7 @@ export function settingsView({ query }) {
     ),
     h(
       'div.item',
-      h('div.grow', h('div.desc', 'API_KEYS.bat 파일에 키를 넣고 저장하면 바로 실제 데이터로 바뀌어요. 키가 없는 항목은 데모 데이터를 보여 줘요.')),
+      h('div.grow', h('div.desc', 'API_KEYS.bat 파일에 키를 넣고 저장하면 바로 실제 데이터로 바뀌어요. 키가 없는 항목은 데모 데이터를 보여 줘요.'), config.keysFile ? h('div.desc', { style: { marginTop: '4px', wordBreak: 'break-all' } }, '이 앱이 읽는 파일: ', h('code', config.keysFile)) : null),
       btn('키 파일 열기', { small: true, iconName: 'key', onClick: () => postJSON('/api/open-keys', {}).catch(() => null) }),
     ),
   );
