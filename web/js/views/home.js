@@ -12,6 +12,7 @@ import { track } from '../metrics.js';
 import { t } from '../i18n.js';
 import { now as clockNow, nowDate } from '../clock.js';
 import { weatherMore, windText, keepOuterScroll } from './weather.js';
+import { calendarPanel, todayLine } from './calendar.js';
 
 const TYPE_NAME = { bus: '버스', subway: '지하철', route: '경로', signal: '신호등' };
 const KIND_NAME = { bus: '버스 정류장', subway: '지하철역', route: '경로', signal: '신호등' };
@@ -367,6 +368,7 @@ function clockCard() {
       h('span', { 'data-clock': 'main' }, time),
       h('span.clock-cs', { 'data-clock': 'cs' }, '.' + String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0'))),
     h('div.clock-date', { 'data-clock': 'date' }, fmtDate(now)),
+    todayLine(),
   );
 }
 
@@ -558,7 +560,7 @@ function transitSummary(onPickType, maxRows) {
 function tabsFor() {
   const counts = { bus: 0, subway: 0, route: 0, signal: 0 };
   for (const t of state.targets) counts[t.type]++;
-  const tabs = [{ id: 'weather', label: '날씨', icon: 'sun' }, { id: 'all', label: '교통 전체', icon: 'route', count: state.targets.length }];
+  const tabs = [{ id: 'weather', label: '날씨', icon: 'sun' }, { id: 'calendar', label: '달력', icon: 'calendar' }, { id: 'all', label: '교통 전체', icon: 'route', count: state.targets.length }];
   for (const type of ['bus', 'subway', 'route']) if (counts[type]) tabs.push({ id: type, label: TYPE_NAME[type], icon: KIND_ICON[type], count: counts[type] });
   // 신호등은 저장하지 않아도 '내 주변'이 자동으로 나와서 항상 보인다
   tabs.push({ id: 'signal', label: TYPE_NAME.signal, icon: KIND_ICON.signal, count: counts.signal + nearSignalTargets().length });
@@ -762,6 +764,7 @@ export function homeView() {
     let content;
     let pages = 1;
     if (tab === 'weather') content = weatherDetail();
+    else if (tab === 'calendar') content = calendarPanel();
     else {
       const r = transitDetail(tab, lay, pageIndex);
       content = r.el;

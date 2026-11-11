@@ -68,6 +68,7 @@ const D = {
   '이 정보는 아직 쓸 수 없어요. data.go.kr에서 이 서비스 활용신청이 승인됐는지, API_KEYS.bat의 키가 맞는지 확인해 주세요.': 'This info is not available yet. Check that the service is approved on data.go.kr and that the key in API_KEYS.bat is correct.',
   '새 앱을 받는 중이에요. 설치 화면이 열리면 "업데이트"(또는 "설치")를 눌러 주세요.': 'Downloading the new app. When the install screen opens, tap "Update" (or "Install").',
   '시간 맞추기': 'Time sync',
+  '달력': 'Calendar',
   '서울 버스 정보는 Windows 버전과 Android 앱에서만 볼 수 있어요. (서울시 버스 API가 휴대폰 브라우저의 보안 연결을 지원하지 않아요)': 'Seoul bus info is only available in the Windows version and the Android app. (The Seoul bus API does not support secure connections for phone browsers.)',
   '이 기능은 모바일 웹 버전에서는 아직 쓸 수 없어요. Windows 버전에서 써 주세요.': 'This feature is not available in the mobile web version yet. Please use the Windows version.',
   'API 키 (이 휴대폰에만 저장)': 'API keys (saved on this phone only)', '공공데이터포털 키 (필수)': 'data.go.kr key (required)', '카카오 REST API 키 (선택)': 'Kakao REST API key (optional)',

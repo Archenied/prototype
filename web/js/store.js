@@ -24,6 +24,7 @@ function defaults() {
     homeRegionId: null,
     targets: [], // {id, type:'bus'|'subway'|'signal'|'route', name, label, sub, ref}
     alarms: [], // {id, name, hour, minute, repeat:'once'|'weekly', days:[0-6], enabled, nextAt}
+    events: [], // 달력 내 일정 {id, date:'YYYY-MM-DD', time:'HH:MM'|'', title, memo, repeat:'none'|'yearly'|'monthly'|'weekly'}
     unavailable: {}, // targetId → true (외부 데이터에서 조회 불가)
     onboardingDone: false,
     lastTab: 'weather',
@@ -185,6 +186,17 @@ export function deleteTarget(id) {
   }, 'targets');
   dropCache(`t:${id}`);
   dropCache(`ts:${id}`);
+}
+// 달력 내 일정 저장·삭제
+export function saveEvent(ev) {
+  update((s) => {
+    const i = s.events.findIndex((x) => x.id === ev.id);
+    if (i >= 0) s.events[i] = ev;
+    else s.events.push(ev);
+  }, 'events');
+}
+export function deleteEvent(id) {
+  update((s) => { s.events = s.events.filter((x) => x.id !== id); }, 'events');
 }
 export function setUnavailable(id, flag) {
   if (!!state.unavailable[id] === !!flag) return;
