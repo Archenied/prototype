@@ -274,7 +274,7 @@ async function api(req, res, url) {
     // 인터넷 표준 시각(NTP). 못 재면 이 PC 시계를 그대로 돌려준다 (화면은 기기 시계를 계속 씀).
     const n = faults.network === 'offline' ? null : await ntpOffset().catch(() => null);
     if (!n) return send(res, 200, { trueNow: Date.now(), source: 'device', precisionMs: 1e9 });
-    return send(res, 200, { trueNow: Date.now() + n.offset, source: 'ntp:' + n.host, precisionMs: Math.max(20, Math.round(n.rtt / 2)) });
+    return send(res, 200, { trueNow: Date.now() + n.offset, source: 'ntp:' + n.host, precisionMs: Math.max(20, Math.round(n.rtt / 2)), rtt: Math.round(n.rtt) });
   }
   if (p === '/api/net') {
     if (faults.network === 'offline') return send(res, 200, { online: false });

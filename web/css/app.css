@@ -332,6 +332,7 @@ a { color: var(--accent); }
 .vlegend .vtag { margin-left: 6px; }
 .vlegend .vtag:first-child { margin-left: 0; }
 /* ───────── 달력 ───────── */
+.clock-zone { margin-top: 4px; font-size: 12px; color: var(--text-3); }
 .clock-days { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; font-weight: 650; color: var(--accent); min-width: 0; }
 .clock-days .icon { flex: none; }
 .cal-wrap { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(320px, 2fr); gap: 14px; height: 100%; align-items: stretch; overflow-y: auto; overscroll-behavior: contain; }

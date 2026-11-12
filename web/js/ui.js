@@ -166,14 +166,19 @@ export function promptDialog({ title, label, value = '', placeholder = '', hint 
 /* ───────── 시간 표시 ───────── */
 const locale = () => prefLocale();
 
+// 시계가 따르는 시간대 (홈 지역의 시간대). 없으면 이 기기의 시간대.
+let clockZoneName;
+export function setClockZone(z) { clockZoneName = z || undefined; }
+const zoneOpt = () => (clockZoneName ? { timeZone: clockZoneName } : {});
+
 export function fmtClock(d = new Date(), withSeconds = false) {
-  const parts = new Intl.DateTimeFormat(locale(), { hour: 'numeric', minute: '2-digit', ...(withSeconds ? { second: '2-digit' } : {}) }).formatToParts(d);
+  const parts = new Intl.DateTimeFormat(locale(), { hour: 'numeric', minute: '2-digit', ...(withSeconds ? { second: '2-digit' } : {}), ...zoneOpt() }).formatToParts(d);
   const dayPeriod = parts.find((p) => p.type === 'dayPeriod')?.value || '';
   const time = parts.filter((p) => p.type !== 'dayPeriod' && !(p.type === 'literal' && !p.value.trim())).map((p) => p.value).join('').trim();
   return { dayPeriod, time };
 }
 export function fmtDate(d = new Date()) {
-  return new Intl.DateTimeFormat(locale(), { month: 'long', day: 'numeric', weekday: 'long' }).format(d);
+  return new Intl.DateTimeFormat(locale(), { month: 'long', day: 'numeric', weekday: 'long', ...zoneOpt() }).format(d);
 }
 export function fmtTime(ts) {
   return new Intl.DateTimeFormat(locale(), { hour: 'numeric', minute: '2-digit' }).format(new Date(ts));

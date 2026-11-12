@@ -1,6 +1,7 @@
 // 기기 저장소: 지역·교통 대상·출발 알림·안내 완료 여부(설정)와 항목별 마지막 성공 데이터(캐시).
 // 로그인 없이 이 PC의 앱 창에만 저장된다 (PRD 로그인 없음·기기 저장).
 import { uid } from './ui.js';
+import { canStore } from './consent.js';
 
 const SETTINGS_KEY = 'proto.settings.v1';
 const CACHE_KEY = 'proto.cache.v1';
@@ -56,6 +57,7 @@ export const testFlags = { failSave: false };
 
 function persist(next) {
   if (testFlags.failSave) throw new SaveError('test');
+  if (!canStore()) return; // 웹 버전: 저장을 허용하지 않은 경우 (이 방문 동안만 기억)
   try {
     const { readFailed, ...rest } = next;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(rest));
@@ -212,6 +214,7 @@ function cacheAll() {
   return cacheMem;
 }
 function cacheFlush() {
+  if (!canStore()) return;
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(cacheMem)); } catch { /* 캐시 저장 실패는 앱 실행에 영향 없음 */ }
 }
 export function getCache(key) {

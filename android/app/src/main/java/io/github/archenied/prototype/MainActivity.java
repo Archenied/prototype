@@ -337,6 +337,7 @@ public class MainActivity extends Activity {
                     j.put("trueNow", System.currentTimeMillis() + offset);
                     j.put("source", "ntp:" + host);
                     j.put("precisionMs", Math.max(20, rtt / 2));
+                    j.put("rtt", rtt);
                 }
                 return j.toString();
             } catch (Exception e) {

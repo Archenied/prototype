@@ -1,7 +1,7 @@
 // S-02 홈 화면
 // 상단: 시각·날씨·교통 요약 (항상 보임) / 아래: 세분화된 상세 탭 (날씨·교통 전체·버스·지하철·경로·신호등)
 // 각 탭 상세는 스크롤 없이 한 화면에 들어오게 하고, 넘치면 페이지로 나눈다.
-import { h, swap, btn, iconBtn, fmtClock, fmtDate, fmtTime, ago, etaText, toast, dialog } from '../ui.js';
+import { h, swap, btn, iconBtn, fmtClock, fmtDate, fmtTime, ago, etaText, toast, dialog, setClockZone } from '../ui.js';
 import { icon, KIND_ICON, WX_ICON } from '../icons.js';
 import { state, homeRegion, regionLabel, targetLabel, saveQuiet, onChange, setHomeRegion } from '../store.js';
 import { register, setActive, view, request, refreshActive, subscribe, POLICY, isRecovering, onRecovering } from '../data.js';
@@ -356,7 +356,14 @@ function targetCard(t, { compact = false } = {}) {
 
 /* ───────── 요약 영역 ───────── */
 // 시:분:초 + 100분의 1초(.00). 숫자는 화면 갱신 때마다 제자리에서 바꾼다 (updateClockText).
+// 앱의 지역은 모두 한국이라 한국 표준시(KST). '현재 위치'는 이 기기의 시간대를 따른다.
+const DEVICE_ZONE = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })();
+function zoneOf(region) { return region && region.kind !== 'current' ? 'Asia/Seoul' : undefined; }
+function zoneCaption(z) { return z && z !== DEVICE_ZONE ? h('div.clock-zone', '한국 표준시(KST) 기준 · 선택한 지역의 시각이에요') : null; }
+
 function clockCard() {
+  const zone = zoneOf(homeRegion());
+  setClockZone(zone);
   const now = nowDate();
   const { dayPeriod, time } = fmtClock(now, true);
   return h(
@@ -368,11 +375,13 @@ function clockCard() {
       h('span', { 'data-clock': 'main' }, time),
       h('span.clock-cs', { 'data-clock': 'cs' }, '.' + String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0'))),
     h('div.clock-date', { 'data-clock': 'date' }, fmtDate(now)),
+    zoneCaption(zone),
     todayLine(),
   );
 }
 
 function updateClockText(root) {
+  setClockZone(zoneOf(homeRegion()));
   const now = nowDate();
   const cs = root.querySelector('[data-clock="cs"]');
   if (!cs) return;
@@ -833,10 +842,10 @@ export function homeView() {
   }
 
   // 1초마다 시각·카운트다운·'n분 전'만 제자리에서 고친다 (버튼 누르는 중에 화면이 바뀌지 않게)
-  let lastMinute = nowDate().getMinutes();
+  let lastMinute = fmtClock(nowDate()).time;
   function tickText() {
     const now = clockNow();
-    const m = new Date(now).getMinutes();
+    const m = fmtClock(new Date(now)).time;
     if (m !== lastMinute) { lastMinute = m; swap(clockSlot, clockCard()); }
     updateClockText(clockSlot);
     for (const e of el.querySelectorAll('[data-arrive]')) e.textContent = etaText(Number(e.dataset.arrive), now);

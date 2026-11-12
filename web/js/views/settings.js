@@ -4,14 +4,31 @@ import { h, btn, toast } from '../ui.js';
 import { DIRECT, NATIVE, getKeys, setKeys, showKeys, unlockKeys } from '../direct.js';
 import { clockInfo } from '../clock.js';
 import { icon } from '../icons.js';
-import { state, homeRegion, regionLabel } from '../store.js';
+import { state, homeRegion, regionLabel, saveQuiet } from '../store.js';
+import { consent, setConsent } from '../consent.js';
 import { go, page, APP_VERSION, config, render } from '../app.js';
 import { notificationSupport } from '../alarms.js';
 import { postJSON } from '../net.js';
 import { prefs, setTheme, setLang } from '../i18n.js';
 
 // 시계가 인터넷 표준 시각과 얼마나 맞는지
+// 인터넷 상태: 시계를 맞출 때 잰 응답 시간(지연)과 오차 범위
+function clockQuality() {
+  const c = clockInfo();
+  const en = prefs.lang === 'en';
+  if (!c.quality) return '';
+  const Q = { good: ['좋음', 'good'], ok: ['보통', 'fair'], bad: ['나쁨', 'poor'], offline: ['연결 안 됨', 'offline'] };
+  const ms = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}${en ? 's' : '초'}` : `${Math.round(v)}ms`);
+  const parts = [en ? `Internet ${Q[c.quality][1]}` : `인터넷 ${Q[c.quality][0]}`];
+  if (c.quality !== 'offline' && c.rtt != null) parts.push(en ? `delay ${ms(c.rtt)}` : `지연 ${ms(c.rtt)}`);
+  if (c.source !== 'device' && Number.isFinite(c.precisionMs) && c.precisionMs < 1e6) parts.push(`±${ms(c.precisionMs)}`);
+  return parts.join(' · ');
+}
 function clockText() {
+  const q = clockQuality();
+  return clockTextBase() + (q ? ' · ' + q : '');
+}
+function clockTextBase() {
   const c = clockInfo();
   const en = prefs.lang === 'en';
   if (!c.at || c.source === 'device') return en ? "Not checked yet · using this device's clock" : '아직 확인 못 했어요 · 기기 시계를 써요';
@@ -113,6 +130,8 @@ export function settingsView({ query }) {
       h('div.item', icon('message'), h('div.grow', h('div.title', '언어')),
         segment([['ko', '한국어'], ['en', 'English']], prefs.lang, (v) => { setLang(v); render(); }, '언어')),
     ),
+    DIRECT && !NATIVE ? h('div.group', h('div.item', icon('database'), h('div.grow', h('div.title', '이 브라우저에 저장'), h('div.desc', '허용하면 지역·교통 대상·일정을 다음에 열어도 기억해요. 허용하지 않으면 브라우저를 닫을 때 사라져요.')),
+      segment([['yes', '허용'], ['no', '안 함']], consent(), (v) => { setConsent(v); if (v === 'yes') saveQuiet(); toast(v === 'yes' ? '이 브라우저에 저장할게요.' : '저장하지 않을게요. 지금 쓰는 동안만 기억해요.'); render(); }, '저장 설정'))) : null,
     showKeys() ? [DIRECT ? h('h2.section-title', 'API 키 (이 휴대폰에만 저장)') : h('h2.section-title', 'API 키 상태 (Windows 버전)'), DIRECT ? mobileKeys() : keysGroup] : null,
     h('div.group', h('div.item', h('div.grow', h('div.title', '시간 맞추기'), h('div.desc', clockText())))),
     (() => {

@@ -17,6 +17,7 @@ import { applyTheme } from './i18n.js';
 import { startUpdateCheck } from './update.js';
 import { installDirect, DIRECT, NATIVE } from './direct.js';
 import { startClock } from './clock.js';
+import { needsConsent, askConsent } from './consent.js';
 
 applyTheme(); // 화면 모드·언어를 가장 먼저 적용 (깜빡임 방지)
 installDirect(); // 모바일 웹(GitHub Pages)이면 '/api' 요청을 브라우저 안에서 처리
@@ -77,4 +78,8 @@ function boot() {
   });
 }
 
-boot();
+// 웹 버전은 처음 한 번만 "이 브라우저에 저장할까요?"를 묻는다 (대답은 기억해서 다시 묻지 않음)
+(async () => {
+  if (needsConsent()) await askConsent();
+  boot();
+})();
