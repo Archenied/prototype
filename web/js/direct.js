@@ -7,6 +7,17 @@ export const DIRECT = !['127.0.0.1', 'localhost', '[::1]'].includes(location.hos
 //  - 서울 버스(http만 있음)도 앱이 대신 받아 줘서 볼 수 있다
 //  - 인터넷 표준 시각(NTP), GitHub 새 버전 확인·설치를 앱이 해 준다
 export const NATIVE = typeof window !== 'undefined' && window.PrototypeNative ? window.PrototypeNative : null;
+
+// 웹 버전(GitHub Pages)에서는 API 키 입력 칸을 숨긴다. (PC 앱과 Android 앱은 항상 보임)
+// 내가 쓰려면: 주소 끝에 ?keys 를 붙여 열거나, 설정 → 앱 정보의 '버전'을 7번 누르면 열려요.
+// (iPhone 홈 화면 앱은 주소를 못 고치니까 7번 누르기가 필요해요)
+const KEYS_FLAG = 'proto.showKeys';
+export function unlockKeys() { try { localStorage.setItem(KEYS_FLAG, '1'); } catch { /* 무시 */ } }
+if (typeof location !== 'undefined' && /[?&]keys\b/.test(location.search + location.hash)) unlockKeys();
+export function showKeys() {
+  if (!DIRECT || NATIVE) return true;
+  try { return localStorage.getItem(KEYS_FLAG) === '1'; } catch { return false; }
+}
 const nativeJson = (fn, ...a) => { try { return JSON.parse(NATIVE[fn](...a)); } catch { return null; } };
 
 const KEYS_STORE = 'proto.keys.v1';
@@ -82,7 +93,7 @@ async function handle(url, init) {
   const p = url.pathname;
   const q = url.searchParams;
   const k = getKeys();
-  const ok = (type, data) => json(200, { data, source: sourceOf(type, k, demo.SOURCE), mode: providerOf(type, k) === 'demo' ? 'demo' : 'live', fetchedAt: Date.now() });
+  const ok = (type, data) => json(200, { data, source: sourceOf(type, k, showKeys() ? demo.SOURCE : '데모 데이터'), mode: providerOf(type, k) === 'demo' ? 'demo' : 'live', fetchedAt: Date.now() });
   const num = (v) => { const n = Number(v); if (!Number.isFinite(n)) throw new ApiError('badrequest'); return n; };
   const str = (v) => { const s = String(v ?? '').trim(); if (!s || s.length > 80) throw new ApiError('badrequest'); return s; };
   try {

@@ -1,7 +1,7 @@
 // S-03 설정 · S-12 데이터 출처 정보
 // 설정은 권한을 묻지 않고, 외부 조회도 하지 않아서 오프라인에서도 그대로 열린다.
 import { h, btn, toast } from '../ui.js';
-import { DIRECT, NATIVE, getKeys, setKeys } from '../direct.js';
+import { DIRECT, NATIVE, getKeys, setKeys, showKeys, unlockKeys } from '../direct.js';
 import { clockInfo } from '../clock.js';
 import { icon } from '../icons.js';
 import { state, homeRegion, regionLabel } from '../store.js';
@@ -113,10 +113,14 @@ export function settingsView({ query }) {
       h('div.item', icon('message'), h('div.grow', h('div.title', '언어')),
         segment([['ko', '한국어'], ['en', 'English']], prefs.lang, (v) => { setLang(v); render(); }, '언어')),
     ),
-    DIRECT ? h('h2.section-title', 'API 키 (이 휴대폰에만 저장)') : h('h2.section-title', 'API 키 상태 (Windows 버전)'),
-    DIRECT ? mobileKeys() : keysGroup,
+    showKeys() ? [DIRECT ? h('h2.section-title', 'API 키 (이 휴대폰에만 저장)') : h('h2.section-title', 'API 키 상태 (Windows 버전)'), DIRECT ? mobileKeys() : keysGroup] : null,
     h('div.group', h('div.item', h('div.grow', h('div.title', '시간 맞추기'), h('div.desc', clockText())))),
-    h('div.group', h('div.item', h('div.grow', h('div.title', '앱 정보'), h('div.desc', '설정은 이 PC에만 저장돼요. 로그인은 필요 없어요.')), h('span.value', `버전 ${APP_VERSION}`))),
+    (() => {
+      let taps = 0;
+      const canUnlock = DIRECT && !NATIVE && !showKeys();
+      const ver = h('span.value', { onClick: canUnlock ? () => { if (++taps >= 7) { unlockKeys(); toast('API 키 칸을 열었어요.'); render(); } } : null }, `버전 ${APP_VERSION}`);
+      return h('div.group', h('div.item', h('div.grow', h('div.title', '앱 정보'), h('div.desc', DIRECT ? '설정은 이 기기의 브라우저에만 저장돼요. 로그인은 필요 없어요.' : '설정은 이 PC에만 저장돼요. 로그인은 필요 없어요.')), ver));
+    })(),
   );
   return {
     el,
@@ -154,7 +158,7 @@ export function sourcesView() {
         ),
       ),
     ),
-    h('p.small.faint', 'API 키가 없는 항목은 데모 데이터로 보여 주며, 그때 홈의 출처에는 "데모 데이터"라고 적혀요.'),
+    showKeys() ? h('p.small.faint', 'API 키가 없는 항목은 데모 데이터로 보여 주며, 그때 홈의 출처에는 "데모 데이터"라고 적혀요.') : null,
   );
   return { el };
 }
