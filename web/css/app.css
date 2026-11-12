@@ -104,9 +104,12 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
-#app { height: 100%; display: flex; flex-direction: column; box-sizing: border-box;
+#app { height: calc(100% - 24px - env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; box-sizing: border-box;
   /* iPhone 홈 화면 앱: 노치·홈 막대에 화면이 가리지 않게 */
-  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); }
+  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) 0 env(safe-area-inset-left, 0); }
+/* 맨 아래 만든 사람 한 줄 */
+.credit { position: fixed; left: 0; right: 0; bottom: 0; height: calc(24px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box; padding: 3px 12px env(safe-area-inset-bottom, 0px); text-align: center; font-size: 12px; line-height: 18px; color: var(--text-3); background: var(--bg); border-top: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: text; }
+@media (max-width: 420px) { .credit { font-size: 10.5px; padding-left: 6px; padding-right: 6px; } }
 button, input, textarea, select { font: inherit; color: inherit; }
 h1, h2, h3, p { margin: 0; }
 a { color: var(--accent); }
@@ -523,7 +526,7 @@ a.item:hover, button.item:hover { background: var(--surface-2); }
 .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 @keyframes fade { from { opacity: 0; } }
 
-.toast-region { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 60; pointer-events: none; }
+.toast-region { position: fixed; left: 50%; bottom: calc(46px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 60; pointer-events: none; }
 .toast { background: #1d2229; color: #fff; padding: 12px 18px; border-radius: 12px; box-shadow: var(--shadow-lg); font-weight: 600; pointer-events: auto; display: flex; align-items: center; gap: 10px; animation: rise 0.18s ease; max-width: min(560px, calc(100vw - 32px)); }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 
@@ -565,7 +568,7 @@ a.item:hover, button.item:hover { background: var(--surface-2); }
 
 /* 업데이트 알림 (왼쪽 아래) */
 .update-pill {
-  position: fixed; left: calc(16px + env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 65;
+  position: fixed; left: calc(16px + env(safe-area-inset-left, 0px)); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); z-index: 65;
   display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px;
   background: var(--surface); color: var(--text); border: 1px solid var(--accent);
   border-radius: 14px; box-shadow: var(--shadow-lg); font-weight: 650; font-size: 14px;
