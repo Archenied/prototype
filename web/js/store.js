@@ -50,30 +50,12 @@ const isNewInstall = state.isNew;
 delete state.isNew;
 export function wasNewInstall() { return isNewInstall; }
 
-// 다운로드 페이지의 '미리보기'(주소 뒤 ?preview): 아무것도 저장하지 않은 사람에게는 예시 지역·교통을 넣어서
-// 앱이 실제로 돌아가는 모습을 보여 준다. 예시를 쓰는 동안에는 이 기기에 아무것도 저장하지 않는다.
-export const PREVIEW = typeof location !== 'undefined' && new URLSearchParams(location.search).has('preview');
-let sample = false;
-if (PREVIEW && !state.onboardingDone && !state.regions.length && !state.targets.length) {
-  sample = true;
-  Object.assign(state, {
-    regions: [{ id: 'sample-r', kind: 'place', name: '서울특별시 중구 명동', label: '', lat: 37.5609, lon: 126.9863 }],
-    homeRegionId: 'sample-r',
-    targets: [
-      { id: 'sample-b', type: 'bus', key: 'bus:01001', name: '광화문', label: '', sub: '시청 방면 · 정류소 01001', ref: { arsId: '01001' } },
-      { id: 'sample-s', type: 'subway', key: 'subway:시청', name: '시청역', label: '', sub: '1호선 · 2호선', ref: { station: '시청', lines: ['1호선', '2호선'] } },
-    ],
-    onboardingDone: true,
-  });
-}
-export function usingSample() { return sample; }
 
 // 시험 도구에서 '기기 저장 실패'를 흉내 낼 수 있게 한다.
 export const testFlags = { failSave: false };
 
 function persist(next) {
   if (testFlags.failSave) throw new SaveError('test');
-  if (sample) return; // 미리보기 예시: 저장하지 않음
   try {
     const { readFailed, ...rest } = next;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(rest));
@@ -230,7 +212,6 @@ function cacheAll() {
   return cacheMem;
 }
 function cacheFlush() {
-  if (sample) return; // 미리보기 예시: 저장하지 않음
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(cacheMem)); } catch { /* 캐시 저장 실패는 앱 실행에 영향 없음 */ }
 }
 export function getCache(key) {

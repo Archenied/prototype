@@ -46,7 +46,7 @@
     code { background: var(--line); padding: 1px 6px; border-radius: 6px; font-size: 14px; color: var(--text); }
     .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
     footer { padding: 40px 16px 48px; color: var(--muted); font-size: 14px; }
-    /* 미리보기: 진짜 앱이 작은 휴대폰 틀 안에서 돌아간다. 누르면 전체 화면 */
+    /* 웹 버전: 진짜 앱이 작은 휴대폰 틀 안에서 돌아간다. 누르면 전체 화면 */
     section.preview { padding: 36px 16px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: center; }
     section.preview h3 { font-size: 22px; margin: 0 0 8px; }
     section.preview p { color: var(--muted); margin: 0 0 14px; }
@@ -94,9 +94,9 @@
       </article>
 
       <article class="card">
-        <h2><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M11 18.5h2"/></svg></span>모바일 웹</h2>
-        <p class="grow">설치 없이 휴대폰 브라우저에서 바로 열어요. 홈 화면에 추가하면 앱처럼 쓸 수 있어요.</p>
-        <a class="btn" href="app/">휴대폰에서 열기</a>
+        <h2><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M11 18.5h2"/></svg></span>웹 버전</h2>
+        <p class="grow">설치 없이 브라우저에서 바로 쓰는 프로토타입이에요. 휴대폰에서는 홈 화면에 추가하면 앱처럼 쓸 수 있어요.</p>
+        <a class="btn" href="app/">웹 버전 열기</a>
         <p style="font-size:13px">서울 버스는 Windows·Android 앱에서, 경로 시간·알림은 Windows 버전에서만 돼요</p>
       </article>
 
@@ -117,16 +117,15 @@
 
     <section class="preview" aria-labelledby="pv-title">
       <div>
-        <span class="live">진짜로 돌아가는 중</span>
-        <h3 id="pv-title">설치하기 전에 써 보세요</h3>
-        <p>오른쪽 휴대폰 화면은 사진이 아니라 실제 앱이에요. 시계가 움직이고 날씨·버스·지하철이 새로 고쳐져요.
-          <b>누르면 전체 화면</b>으로 열려서 모든 화면을 직접 눌러 볼 수 있어요. iPhone·Android·PC 모두 돼요.</p>
-        <p style="font-size:14px">아직 저장한 게 없으면 예시(명동·광화문 정류장·시청역)와 데모 데이터로 보여 주고, 아무것도 저장하지 않아요.</p>
-        <a class="btn" href="#preview" data-open-preview>▶ 전체 화면으로 써 보기</a>
+        <span class="live">웹 버전 · 설치 없이</span>
+        <h3 id="pv-title">프로토타입 웹 버전</h3>
+        <p>브라우저에서 바로 쓰는 <b>진짜 프로토타입</b>이에요. 설치하는 앱과 같은 화면이고, 누르면 전체 화면으로 열려요. iPhone·Android·PC 모두 돼요.</p>
+        <p style="font-size:14px">설정은 이 브라우저에만 저장돼요. 실제 날씨·버스를 보려면 설정 → API 키에 공공데이터포털 키를 넣어 주세요. (키가 없으면 데모 데이터)</p>
+        <a class="btn" href="app/" data-open-web>▶ 웹 버전 열기</a>
       </div>
       <div class="phone">
-        <div class="screen"><iframe src="app/?preview#/home" title="프로토타입 미리보기" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div>
-        <button class="tap" type="button" data-open-preview aria-label="미리보기를 전체 화면으로 열기"><span>눌러서 전체 화면</span></button>
+        <div class="screen"><iframe src="app/#/home" title="프로토타입 웹 버전" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div>
+        <button class="tap" type="button" data-open-web aria-label="웹 버전을 전체 화면으로 열기"><span>눌러서 전체 화면</span></button>
       </div>
     </section>
 
@@ -177,7 +176,7 @@
     <p><a href="https://github.com/Archenied/prototype">GitHub에서 코드 보기</a></p>
   </footer>
 
-  <div class="full" id="full" hidden role="dialog" aria-modal="true" aria-label="프로토타입 전체 화면 미리보기">
+  <div class="full" id="full" hidden role="dialog" aria-modal="true" aria-label="프로토타입 웹 버전 전체 화면">
     <div class="bar">
       <b>프로토타입 <small id="full-note"></small></b>
       <button class="close" type="button" id="full-close">✕ 닫기</button>
@@ -185,7 +184,7 @@
   </div>
 
   <script>
-    // 미리보기 전체 화면: iPhone Safari는 웹 페이지의 '진짜 전체 화면'을 막아 두어서,
+    // 웹 버전 전체 화면: iPhone Safari는 웹 페이지의 '진짜 전체 화면'을 막아 두어서,
     // 화면 전체를 덮는 층으로 띄운다 (모든 기기에서 같게 동작). 뒤로 가기·Esc·닫기로 닫힌다.
     (function () {
       const full = document.getElementById('full');
@@ -198,15 +197,15 @@
       function open(push) {
         if (!full.hidden) return;
         opener = document.activeElement;
-        note.textContent = hasSaved() ? '· 내가 저장한 설정' : '· 체험용 예시 (저장되지 않아요)';
+        note.textContent = hasSaved() ? '· 웹 버전 · 내 설정' : '· 웹 버전 · 처음이면 안내가 나와요';
         frame = document.createElement('iframe');
-        frame.src = 'app/?preview#/home';
+        frame.src = 'app/#/home';
         frame.title = '프로토타입';
         frame.allow = 'geolocation';
         full.append(frame);
         full.hidden = false;
         document.body.classList.add('locked');
-        if (push) history.pushState({ preview: true }, '', '#preview');
+        if (push) history.pushState({ web: true }, '', '#web');
         setTimeout(function () { try { frame.focus(); } catch (e) {} }, 300);
       }
       function close(fromHistory) {
@@ -214,16 +213,16 @@
         full.hidden = true;
         document.body.classList.remove('locked');
         if (frame) { frame.remove(); frame = null; }
-        if (!fromHistory && location.hash === '#preview') history.back();
+        if (!fromHistory && location.hash === '#web') history.back();
         if (opener && opener.focus) opener.focus();
       }
-      document.querySelectorAll('[data-open-preview]').forEach(function (el) {
+      document.querySelectorAll('[data-open-web]').forEach(function (el) {
         el.addEventListener('click', function (e) { e.preventDefault(); open(true); });
       });
       document.getElementById('full-close').addEventListener('click', function () { close(false); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(false); });
-      addEventListener('popstate', function () { if (location.hash === '#preview') open(false); else close(true); });
-      if (location.hash === '#preview') open(false);
+      addEventListener('popstate', function () { if (location.hash === '#web') open(false); else close(true); });
+      if (location.hash === '#web') open(false);
     })();
 
     fetch('version.json', { cache: 'no-store' })
