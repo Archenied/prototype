@@ -242,10 +242,21 @@ function str(v, max = 80) {
 }
 
 /* ───────────── API 라우트 ───────────── */
+let kakaoBad = { key: '', at: 0 };
 async function api(req, res, url) {
   const p = url.pathname;
   const q = url.searchParams;
-  const keys = readKeys(ROOT);
+  let keys = readKeys(ROOT);
+  // 카카오가 이 키를 거절한 적이 있으면(잘못 붙여 넣음 등) 10분 동안은 앱 안의 목록으로 검색한다. 키를 고치면 바로 다시 시도한다.
+  if (keys.KAKAO_REST_KEY && keys.KAKAO_REST_KEY === kakaoBad.key && Date.now() - kakaoBad.at < 10 * 60e3) keys = { ...keys, KAKAO_REST_KEY: '' };
+  const kakaoOrDemo = async (liveFn, demoFn) => {
+    if (modeOf('regions', keys) !== 'live') return demoFn();
+    try { return await liveFn(); } catch (e) {
+      if (e instanceof ApiError && e.detail === 'key') { kakaoBad = { key: keys.KAKAO_REST_KEY, at: Date.now() }; keys = { ...keys, KAKAO_REST_KEY: '' }; return demoFn(); }
+      throw e;
+    }
+  };
+  const kk = (keys.KAKAO_REST_KEY || 'demo').slice(-6); // 캐시 이름에 넣어서, 키를 고치면 옛 결과가 안 남게
   const ok = (type, data) => send(res, 200, { data, source: sourceOf(type, keys), mode: modeOf(type, keys), fetchedAt: Date.now() });
 
   if (p === '/api/health') return send(res, 200, { app: APP_ID, version: VERSION });
@@ -278,16 +289,16 @@ async function api(req, res, url) {
   // 지역·장소 검색
   if (p === '/api/regions/search') {
     const term = str(q.get('q'), 40);
-    return ok('regions', await cached('regions', term, () => (modeOf('regions', keys) === 'live' ? live.searchRegions(keys, term) : demo.searchRegions(term))).then((v) => (v.empty ? [] : v)));
+    return ok('regions', await cached('regions', `${term}:${kk}`, () => kakaoOrDemo(() => live.searchRegions(keys, term), () => demo.searchRegions(term))).then((v) => (v.empty ? [] : v)));
   }
   if (p === '/api/regions/reverse') {
     const lat = num(q.get('lat')), lon = num(q.get('lon'));
-    const v = await cached('regions', `rev:${lat.toFixed(3)},${lon.toFixed(3)}`, () => (modeOf('regions', keys) === 'live' ? live.reverseRegion(keys, lat, lon) : demo.reverseRegion(lat, lon)));
+    const v = await cached('regions', `rev:${lat.toFixed(3)},${lon.toFixed(3)}:${kk}`, () => kakaoOrDemo(() => live.reverseRegion(keys, lat, lon), () => demo.reverseRegion(lat, lon)));
     return ok('regions', v.empty ? { name: '알 수 없는 지역', supported: false } : v);
   }
   if (p === '/api/places/search') {
     const term = str(q.get('q'), 40);
-    return ok('places', await cached('places', term, () => (modeOf('places', keys) === 'live' ? live.searchPlaces(keys, term) : demo.searchPlaces(term))).then((v) => (v.empty ? [] : v)));
+    return ok('places', await cached('places', `${term}:${kk}`, () => kakaoOrDemo(() => live.searchPlaces(keys, term), () => demo.searchPlaces(term))).then((v) => (v.empty ? [] : v)));
   }
 
   // 날씨
