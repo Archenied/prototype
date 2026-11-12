@@ -81,9 +81,9 @@ jobs:
             adb logcat -c
             adb shell am start -W -n io.github.archenied.prototype/.MainActivity
             sleep 25
-            adb shell pidof io.github.archenied.prototype
             adb exec-out screencap -p > screen.png
             adb logcat -d > logcat.txt
+            adb shell pidof io.github.archenied.prototype || { echo "APP IS NOT RUNNING - crash log:"; grep -E "AndroidRuntime|FATAL|has died|Process:|Caused by|Fatal signal|prototype" logcat.txt | tail -60; exit 1; }
             grep -E "chromium.*(Uncaught|SyntaxError|TypeError|ReferenceError)" logcat.txt && exit 1 || true
             grep -E "FATAL EXCEPTION" logcat.txt && exit 1 || true
             adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml ui.xml || true
